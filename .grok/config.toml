@@ -1,0 +1,27 @@
+# Project-scoped Grok Build config for synapsis
+#
+# Registers the Synapsis MCP — the unified durable memory layer
+# (sessions, tasks, handoffs, knowledge/wiki search, token compression, etc.)
+
+[mcp_servers.synapsis]
+command = "uv"
+args = ["run", "python", "-m", "tools.synapsis"]
+env = { SYNAPSIS_DB_PATH = ".synapsis/synapsis.db" }
+enabled = true
+startup_timeout_sec = 15
+
+# The llm/ package (multi-provider client for Grok, Gemini, OpenRouter, etc.)
+# is a library you import from your own code/skills/MCPs:
+#   from tools.llm.providers.grok import GrokProvider
+#   from tools.llm.config import get_api_key
+#
+# It is not registered as an MCP by default.
+
+# Project integration surface (beyond the MCP itself):
+# - AGENTS.md + .grok/rules/*.md  → standard project rules (core discipline)
+# - GROK.md                       → expanded operational manual + examples
+# - .grok/skills/                 → /handoff and /synapsis slash commands (recommended UX)
+# - .grok/hooks/synapsis-hygiene.json → automatic hygiene (stats + dry consolidate on Stop/PreCompact)
+#
+# Use the skills first: /handoff, /synapsis search ..., /synapsis hygiene etc.
+# The raw MCP tools remain available as synapsis__* via search_tool + use_tool.

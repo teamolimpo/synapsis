@@ -1,0 +1,1 @@
+"""Tool condivisi Team Olimpo."""

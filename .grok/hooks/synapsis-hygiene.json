@@ -1,0 +1,38 @@
+{
+  "_comment": "Project-scoped hooks for synapsis memory hygiene. Requires trusting this project once (see /hooks or add to ~/.grok/trusted-hook-projects). Uses the new 'synapsis hygiene' CLI (dry consolidate + stats by default).",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run python -m tools.synapsis hygiene 2>/dev/null || true",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run python -m tools.synapsis hygiene 2>/dev/null || true",
+            "timeout": 25
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run python -m tools.synapsis hygiene 2>/dev/null || true",
+            "timeout": 12
+          }
+        ]
+      }
+    ]
+  }
+}
