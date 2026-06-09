@@ -1,4 +1,4 @@
-"""Entry point: python -m tools.synapsis
+"""Entry point: uv run python -m tools.synapsis
 
 Behaviour depends on arguments:
 - With subcommand (e.g. ``compress``, ``vacuum``, ``migrate``): runs CLI mode
