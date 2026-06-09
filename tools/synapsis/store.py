@@ -23,7 +23,7 @@ from typing import Any
 
 from loguru import logger
 
-from tools.common.paths import resolve_absolute
+from tools.common.paths import resolve_synapsis_db
 from tools.synapsis.models import (
     compute_token_savings,
     generate_session_id,
@@ -43,14 +43,14 @@ _DEFAULT_DB_REL = Path(".synapsis/synapsis.db")
 
 
 def _resolve_db_path() -> Path:
-    """Resolve the database path from env var or default."""
-    env_path = os.environ.get("SYNAPSIS_DB_PATH")
-    if env_path:
-        p = Path(env_path)
-        if p.is_absolute():
-            return p
-        return resolve_absolute(str(p))
-    return resolve_absolute(str(_DEFAULT_DB_REL))
+    """Resolve the database path from env var or default.
+
+    Delegates to the shared helper in tools.common.paths so that
+    knowledge_base.chunk_indexer and SynapsisStore always agree on the
+    location (and on SYNAPSIS_DB_PATH overrides). Default is the local
+    .synapsis/synapsis.db (chunks live in the main DB, not legacy chunks.db).
+    """
+    return resolve_synapsis_db()
 
 
 # ---------------------------------------------------------------------------

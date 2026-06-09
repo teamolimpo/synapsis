@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = {text = "MIT"}
 authors = [
-    {name = "TeamOlimpo contributors (extracted)"}
+    {name = "tensor-mill"}
 ]
 dependencies = [
     # Core for Synapsis MCP + store
@@ -35,6 +35,8 @@ dependencies = [
 
     # Misc shared
     "markdown>=3.10.2",
+    # Progress for chunk_indexer CLI (knowledge reindex of Library/). Lightweight + required for documented UX.
+    "tqdm>=4.65",
 ]
 
 [project.optional-dependencies]

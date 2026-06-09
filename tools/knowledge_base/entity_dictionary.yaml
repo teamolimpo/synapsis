@@ -1,0 +1,122 @@
+# Entity dictionary for Team Olimpo knowledge base entity extraction.
+# Each entry: name, aliases (optional), type (PROJECT|TOOL|PERSON|CONCEPT).
+# Used by entity_extractor.py Level 1 — exact dictionary lookup.
+
+projects:
+  - name: Mem0
+    aliases: [mem0ai, mem0]
+    type: PROJECT
+  - name: OpenHuman
+    aliases: [tinyhumansai, openhuman]
+    type: PROJECT
+  - name: caveman
+    aliases: [Julius Brussee, brussee]
+    type: PROJECT
+  - name: Zilliz
+    aliases: [zilliztech, claude-context]
+    type: PROJECT
+  - name: ChunkDragon
+    aliases: [chunk-dragon, chunk dragon]
+    type: PROJECT
+  - name: WUPHF
+    aliases: [nex-crm, wuphf]
+    type: PROJECT
+  - name: Clio
+    aliases: [clio-vault]
+    type: PROJECT
+  - name: Athena
+    aliases: [athena-agent]
+    type: PROJECT
+  - name: Proteo
+    type: PROJECT
+  - name: Efesto
+    type: PROJECT
+  - name: Hermes
+    type: PROJECT
+  - name: Euterpe
+    type: PROJECT
+  - name: Hermione
+    type: PROJECT
+  - name: opencode
+    aliases: [opencode]
+    type: PROJECT
+
+tools:
+  - name: sqlite-vec
+    aliases: [sqlite_vec, vec0, sqlite-vec]
+    type: TOOL
+  - name: FTS5
+    aliases: [fts5]
+    type: TOOL
+  - name: MCP
+    aliases: [mcp, model-context-protocol, Model Context Protocol]
+    type: TOOL
+  - name: RRF
+    aliases: [reciprocal-rank-fusion, reciprocal rank fusion]
+    type: CONCEPT
+  - name: spaCy
+    aliases: [spacy]
+    type: TOOL
+  - name: thefuzz
+    aliases: [fuzzywuzzy]
+    type: TOOL
+  - name: SentenceTransformer
+    aliases: [sentence-transformers, sentence_transformer, all-MiniLM-L6-v2]
+    type: TOOL
+  - name: FastMCP
+    aliases: [fastmcp]
+    type: TOOL
+  - name: Typer
+    aliases: [typer]
+    type: TOOL
+  - name: Jinja2
+    aliases: [jinja2, jinja]
+    type: TOOL
+  - name: ripgrep
+    aliases: [rg, ripgrep]
+    type: TOOL
+  - name: Obsidian
+    aliases: [obsidian]
+    type: TOOL
+
+people:
+  - name: Alex Garcia
+    type: PERSON
+  - name: Harrison Chase
+    aliases: [harrison chase]
+    type: PERSON
+  - name: Julius Brussee
+    aliases: [brussee]
+    type: PERSON
+  - name: Andrej Karpathy
+    aliases: [karpathy]
+    type: PERSON
+
+concepts:
+  - name: Progressive Disclosure
+    aliases: [progressive-disclosure]
+    type: CONCEPT
+  - name: Multi-Signal Retrieval
+    aliases: [multi-signal retrieval, hybrid retrieval, multi signal retrieval]
+    type: CONCEPT
+  - name: Entity Linking
+    aliases: [entity linking, entity match, entity matching]
+    type: CONCEPT
+  - name: ADD-only
+    aliases: [add-only, append only, append-only]
+    type: CONCEPT
+  - name: Reciprocal Rank Fusion
+    aliases: [reciprocal rank fusion]
+    type: CONCEPT
+  - name: BM25
+    aliases: [bm25, bm-25]
+    type: CONCEPT
+  - name: Agent Qualification Framework
+    aliases: [AQF, agent qualification framework, agent-qualification-framework]
+    type: CONCEPT
+  - name: Knowledge Base
+    aliases: [knowledge-base, knowledge base, KB, kb]
+    type: CONCEPT
+  - name: Vector Search
+    aliases: [vector-search, vector search, semantic search]
+    type: CONCEPT

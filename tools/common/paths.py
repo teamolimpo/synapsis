@@ -13,7 +13,7 @@ Usage::
 
     from tools.common.paths import project_root, resolve_relative, resolve_absolute
 
-    root = project_root()                    # /home/stra/synapsis
+    root = project_root()                    # e.g. /path/to/synapsis
     rel  = resolve_relative("Library")       # .../synapsis/Library (symlink preserved)
     abs  = resolve_absolute("Library")       # .../real-vault (symlinks resolved for I/O)
     db   = resolve_absolute(".synapsis/synapsis.db")
@@ -21,6 +21,7 @@ Usage::
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 _PROJECT_ROOT: Path | None = None
@@ -34,7 +35,7 @@ def project_root() -> Path:
     ``tools/common/paths.py``, exactly three levels below the project root.
 
     Returns:
-        Absolute path to the repository root (e.g. ``/home/stra/synapsis``).
+        Absolute path to the repository root (e.g. ``/path/to/synapsis``).
     """
     global _PROJECT_ROOT  # noqa: PLW0603
     if _PROJECT_ROOT is None:
@@ -74,3 +75,26 @@ def resolve_absolute(*parts: str) -> Path:
         to an external vault; .synapsis/ is normally local and does not need this).
     """
     return project_root().joinpath(*parts).resolve()
+
+
+def resolve_synapsis_db() -> Path:
+    """Return the primary Synapsis DB path for store + knowledge chunks.
+
+    Honors the SYNAPSIS_DB_PATH env var (absolute, or relative to project root).
+    Default: .synapsis/synapsis.db (resolved via project_root + absolute rules).
+
+    This is the single source of truth used by SynapsisStore and by the
+    integrated knowledge_base.chunk_indexer (after adaptation). It keeps
+    chunks inside the main synapsis.db rather than a legacy separate chunks.db
+    or a legacy external layout.
+
+    Returns:
+        Absolute Path to the SQLite DB file.
+    """
+    env_path = os.environ.get("SYNAPSIS_DB_PATH")
+    if env_path:
+        p = Path(env_path)
+        if p.is_absolute():
+            return p
+        return resolve_absolute(str(p))
+    return resolve_absolute(".synapsis/synapsis.db")

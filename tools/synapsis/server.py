@@ -1239,15 +1239,20 @@ def admin(
         except ImportError as exc:
             return json.dumps({"error": f"chunk_indexer not available: {exc}."})
 
-        if ix == "update":
-            chunk_indexer.update(verbose=False, dry_run=dry)
-            return json.dumps({"action": "update", "dry_run": dry, "status": "completed"})
-        if ix == "rebuild":
-            chunk_indexer.rebuild(verbose=False)
-            return json.dumps({"action": "rebuild", "status": "completed"})
-        if ix == "clean":
-            chunk_indexer.clean(verbose=False, dry_run=dry)
-            return json.dumps({"action": "clean", "dry_run": dry, "status": "completed"})
+        try:
+            if ix == "update":
+                chunk_indexer.update(verbose=False, dry_run=dry)
+                return json.dumps({"action": "update", "dry_run": dry, "status": "completed"})
+            if ix == "rebuild":
+                chunk_indexer.rebuild(verbose=False)
+                return json.dumps({"action": "rebuild", "status": "completed"})
+            if ix == "clean":
+                chunk_indexer.clean(verbose=False, dry_run=dry)
+                return json.dumps({"action": "clean", "dry_run": dry, "status": "completed"})
+        except Exception as exc:
+            # Surface configuration errors (e.g. missing knowledge.include) and other
+            # problems as clear structured errors instead of letting the call explode.
+            return json.dumps({"error": str(exc), "action": ix})
 
         return json.dumps({"error": f"Unhandled index_action '{ix}'."})
 

@@ -2,7 +2,7 @@
 
 **Unified durable team memory MCP + multi-provider LLM client**, extracted as a focused, reusable package.
 
-Originally the core memory layer from [TeamOlimpo](https://github.com/teamolimpo/TeamOlimpo) (the "Kubernetes for AI agents" project with mandatory structured handoffs).
+Synapsis is a standalone memory layer designed for agentic workflows and Grok Build. It was originally extracted from a larger internal project.
 
 Designed to work great with **Grok Build** (and other agent harnesses that speak MCP).
 
@@ -125,7 +125,10 @@ exactly as before.
 
 ## .synapsis vs Library (hot operational memory vs curated/vault content)
 
-- **`.synapsis/`** (default): low-latency local runtime store. Contains `synapsis.db` (plus WAL/SHM). This is where sessions, observations, tasks, entities, FTS5 indexes, etc. live. Fast local I/O by design. Fully gitignored.
+- **`.synapsis/`** (default): low-latency local runtime store. Contains:
+  - `synapsis.db` (plus WAL/SHM) — sessions, observations, tasks, entities, FTS5, knowledge chunks, etc.
+  - `config.yaml` — optional local operational configuration for the whole synapsis instance (e.g. what to index under `knowledge.include` / `knowledge.exclude`).
+  Fast local I/O by design. Fully gitignored.
 - **`Library/`**: intended for higher-latency or curated content (Handoff files, Wiki contributions). This is the part that can be symlinked to a personal vault, Obsidian, NFS, etc. without hurting the hot path. Gitignored (with `.gitkeep` markers).
 
 The split exists so that the very active DB (frequent small writes + searches) stays on fast local storage, while you can still keep handoffs and curated knowledge in a separate, possibly remote/slower vault.
@@ -141,15 +144,13 @@ This is a focused extraction of the two strongest reusable components:
 - Synapsis (the memory/handoff/knowledge system)
 - The LLM multi-provider client
 
-The full TeamOlimpo project (Poros orchestrator prompts, 11 specialist agents, SOPs, executor + Token Juice, PDF converter, etc.) remains in the original repo: https://github.com/teamolimpo/TeamOlimpo
-
-Many of the concepts (mandatory handoffs, SOP-driven work, quality gates) translate beautifully to Grok Build's subagents + skills + plan/implement/review loops.
+Many of the concepts (mandatory handoffs, structured memory, quality gates) translate well to agentic setups and subagent coordination patterns.
 
 ## Contributing / Philosophy
 
 If you extend this, try to keep the "handoff before you return control" spirit and make heavy use of the durable memory instead of stuffing everything into the agent's context window.
 
-The original handoff protocol spec lives in the TeamOlimpo SOPs (OLM-SOP-002 etc.).
+The handoff protocol and memory discipline are documented in `GROK.md` and `AGENTS.md`.
 
 ## License
 

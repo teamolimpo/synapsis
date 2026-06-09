@@ -291,4 +291,4 @@ use_tool synapsis__admin {"act":"stats"}
 
 This file (`GROK.md`) is the detailed operational manual. The auto-loaded project rules entry point is `AGENTS.md` (which references this file). Skills in `.grok/skills/` provide the best day-to-day UX. Update AGENTS.md / GROK.md / the skills together when patterns evolve.
 
-For even more detail on the original handoff protocol, see the TeamOlimpo SOPs (OLM-SOP-002 and related) or the source in `tools/synapsis/`.
+For the handoff protocol and memory discipline, see the dedicated sections in this file and `AGENTS.md`.

@@ -1,12 +1,15 @@
-"""CLI for Synapsis — compress, vacuum, stats, migrate.
+"""CLI for Synapsis — compress, vacuum, stats, hygiene, knowledge config, etc.
 
-Usage::
+Usage examples::
 
     uv run python -m tools.synapsis compress --warm --dry-run
-    uv run python -m tools.synapsis compress --cold --apply
     uv run python -m tools.synapsis vacuum
     uv run python -m tools.synapsis stats
-    uv run python -m tools.synapsis migrate --dry-run
+    uv run python -m tools.synapsis hygiene --apply
+    uv run python -m tools.synapsis knowledge init
+    uv run python -m tools.synapsis knowledge list
+    uv run python -m tools.synapsis knowledge add Library/projects/
+    uv run python -m tools.synapsis knowledge exclude "**/*-draft*"
 """
 
 from __future__ import annotations
@@ -18,6 +21,18 @@ import typer
 from loguru import logger
 
 from tools.synapsis.store import SynapsisStore
+
+from tools.common.config import (
+    add_knowledge_exclude,
+    add_knowledge_include,
+    get_config_path,
+    get_effective_knowledge_config,
+    init_knowledge_config,
+    reload_config,
+    remove_knowledge_exclude,
+    remove_knowledge_include,
+)
+from tools.common.paths import resolve_relative
 
 # ---------------------------------------------------------------------------
 # CLI App
@@ -248,6 +263,147 @@ def hygiene(
     except Exception as e:
         logger.error(f"Hygiene failed: {e}")
         sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
+# Knowledge config commands (explicit .synapsis/config.yaml management)
+# ---------------------------------------------------------------------------
+
+
+knowledge_app = typer.Typer(
+    name="knowledge",
+    help="Manage knowledge indexing configuration (.synapsis/config.yaml) — the explicit include/exclude list for chunk indexing.",
+    no_args_is_help=True,
+)
+
+
+@knowledge_app.command()
+def init(
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Reset only the knowledge section to defaults (preserves other top-level sections)",
+    ),
+) -> None:
+    """Ensure .synapsis/config.yaml has a working knowledge section.
+
+    - If the file is missing: creates a full starter with comments.
+    - If the file exists (default): only touches the `knowledge` section.
+      If `include` is empty/missing it adds Wiki + Handoff. Other sections
+      you may have added (llm:, custom keys, etc.) are left untouched.
+    - Use --force to forcibly reset the knowledge keys to clean defaults.
+
+    This is the recommended way to fix the "Library paths not defined" error.
+    """
+    try:
+        path = init_knowledge_config(force=force)
+        print(f"Config ready at {path}")
+        print("You can now run e.g. `uv run python -m tools.knowledge_base.chunk_indexer update`")
+    except Exception as e:
+        logger.error(f"init failed: {e}")
+        sys.exit(1)
+
+
+@knowledge_app.command("list")
+@knowledge_app.command("ls")
+def list_config() -> None:
+    """Show the current knowledge.include and knowledge.exclude from .synapsis/config.yaml.
+
+    Also reports which declared include paths exist on disk.
+    """
+    try:
+        cfg = get_effective_knowledge_config()
+        inc = cfg.get("include", []) or []
+        exc = cfg.get("exclude", []) or []
+        path = get_config_path()
+
+        print(f"=== Knowledge config ({path}) ===")
+        print("include:")
+        if inc:
+            for p in inc:
+                exists = resolve_relative(p).is_dir()
+                mark = "✓" if exists else "✗ (missing)"
+                print(f"  - {p}  {mark}")
+        else:
+            print("  (empty — indexer will error until you add at least one path)")
+
+        print("\nexclude:")
+        if exc:
+            for p in exc:
+                print(f"  - {p}")
+        else:
+            print("  (none)")
+
+        print("\n(Use `synapsis knowledge add Library/xxx/`, `exclude '**/draft*'`, etc.)")
+    except Exception as e:
+        logger.error(f"list failed: {e}")
+        sys.exit(1)
+
+
+@knowledge_app.command()
+def add(
+    path: str = typer.Argument(..., help="Relative path to add to knowledge.include (e.g. Library/projects/)"),
+) -> None:
+    """Add a directory to knowledge.include (deduplicated)."""
+    try:
+        new_list = add_knowledge_include(path)
+        print(f"Added '{path}' to include.")
+        print(f"Current include: {new_list}")
+        print("Run the indexer (or `synapsis knowledge list`) to verify.")
+        reload_config()
+    except Exception as e:
+        logger.error(f"add failed: {e}")
+        sys.exit(1)
+
+
+@knowledge_app.command("remove")
+@knowledge_app.command("rm")
+def remove_path(
+    path: str = typer.Argument(..., help="Relative path to remove from knowledge.include"),
+) -> None:
+    """Remove a directory from knowledge.include."""
+    try:
+        new_list = remove_knowledge_include(path)
+        print(f"Removed '{path}' from include (if it was present).")
+        print(f"Current include: {new_list}")
+        reload_config()
+    except Exception as e:
+        logger.error(f"remove failed: {e}")
+        sys.exit(1)
+
+
+@knowledge_app.command()
+def exclude(
+    pattern: str = typer.Argument(..., help="Glob pattern to add to knowledge.exclude (e.g. '**/draft*')"),
+) -> None:
+    """Add a glob pattern to knowledge.exclude."""
+    try:
+        new_list = add_knowledge_exclude(pattern)
+        print(f"Added exclude pattern '{pattern}'.")
+        print(f"Current exclude: {new_list}")
+        reload_config()
+    except Exception as e:
+        logger.error(f"exclude failed: {e}")
+        sys.exit(1)
+
+
+@knowledge_app.command("unexclude")
+def unexclude(
+    pattern: str = typer.Argument(..., help="Glob pattern to remove from knowledge.exclude"),
+) -> None:
+    """Remove a glob pattern from knowledge.exclude."""
+    try:
+        new_list = remove_knowledge_exclude(pattern)
+        print(f"Removed exclude pattern '{pattern}' (if present).")
+        print(f"Current exclude: {new_list}")
+        reload_config()
+    except Exception as e:
+        logger.error(f"unexclude failed: {e}")
+        sys.exit(1)
+
+
+app.add_typer(knowledge_app, name="knowledge")
 
 
 # ---------------------------------------------------------------------------

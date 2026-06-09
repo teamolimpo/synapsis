@@ -1,0 +1,69 @@
+# .synapsis/config.yaml
+#
+# Central operational configuration file for a synapsis instance.
+# It lives inside the hot store (.synapsis/), is gitignored, and is meant
+# to contain local, machine- or project-specific settings.
+#
+# This file is the single place where you configure how synapsis behaves
+# at runtime. Today the main section is "knowledge" (chunk indexing).
+# Over time other sections may appear (e.g. llm defaults, session behaviour, etc.).
+
+knowledge:
+  # ------------------------------------------------------------------
+  # What to index ("al contrario di .gitignore")
+  # ------------------------------------------------------------------
+  # The "include" list is the primary positive selection.
+  # These paths are relative to the project root and will be recursively
+  # scanned for *.md files.
+  include:
+    - Library/Wiki/
+    - Library/Handoff/
+    # Add your own as needed:
+    # - Library/notes/
+    # - Library/SOPs/
+    # - Library/research/
+
+  # ------------------------------------------------------------------
+  # What to ignore (gitignore-style patterns)
+  # ------------------------------------------------------------------
+  # Patterns here are applied after the include list.
+  # They follow common glob rules ( ** works for recursive directories).
+  # This is the recommended way to exclude drafts, archives, private stuff, etc.
+  exclude:
+    - Library/Archive/**
+    - "**/*-draft*"
+    - "**/.private/**"
+    # - "Library/System/**"     # if you keep internal system notes there
+
+  # ------------------------------------------------------------------
+  # Chunking behaviour
+  # ------------------------------------------------------------------
+  # Which Markdown heading levels should be used as split points.
+  # 1 = #, 2 = ##, 3 = ###, etc.
+  # The classic (pre-config) behaviour was only levels 2 and 3.
+  heading_levels: [2, 3]
+
+  # ------------------------------------------------------------------
+  # Embeddings (only relevant if you installed the optional "embeddings" extra)
+  # ------------------------------------------------------------------
+  # embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+
+  # ------------------------------------------------------------------
+  # Entity extraction (optional override)
+  # ------------------------------------------------------------------
+  # By default the indexer uses the entity_dictionary.yaml that ships
+  # with the knowledge_base package. You can point to a custom one.
+  # entity_dictionary: "Library/System/my-project-entities.yaml"
+
+
+# ----------------------------------------------------------------------
+# Future / other possible top-level sections (examples, not yet used)
+# ----------------------------------------------------------------------
+# llm:
+#   default_provider: grok
+#
+# session:
+#   default_token_budget: 2000
+#
+# indexer:
+#   auto_reindex_on_handoff: true
