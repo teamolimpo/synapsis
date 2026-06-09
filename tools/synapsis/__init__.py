@@ -1,4 +1,4 @@
-"""Synapsis — Unified memory layer for Team Olimpo.
+"""Synapsis — Unified durable memory layer (extracted from TeamOlimpo/Poros).
 
 Fuses session_memory (6 tools) + taskmanager (7 tools) into a single
 cross-agent MCP server with SQLite backing store, full-text search,

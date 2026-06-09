@@ -1,6 +1,6 @@
 **Synapsis + Grok Build Integration Test (New Session)**
 
-You are starting a completely fresh session inside the `synapsis-memory` project.
+You are starting a completely fresh session inside the `synapsis` project.
 
 The project now has a proper integration surface beyond just a single GROK.md:
 - `AGENTS.md` (standard project rules entry point) + `.grok/rules/*.md`

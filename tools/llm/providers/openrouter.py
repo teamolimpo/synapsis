@@ -58,8 +58,8 @@ class OpenRouterProvider:
             base_url=self._BASE_URL,
             default_headers={
                 # Identificativo per le classifiche pubbliche OpenRouter
-                "HTTP-Referer": "https://github.com/stra/TeamOlimpo",
-                "X-Title": "Team Olimpo",
+                "HTTP-Referer": "https://github.com/teamolimpo/synapsis",
+                "X-Title": "synapsis",
             },
         )
         logger.debug(f"OpenRouterProvider inizializzato con base_url={self._BASE_URL}")

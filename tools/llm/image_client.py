@@ -95,8 +95,8 @@ class OpenRouterImageClient:
     def __init__(
         self,
         api_key: str,
-        site_url: str = "https://github.com/TeamOlimpo",
-        app_name: str = "TeamOlimpo-Fidia",
+        site_url: str = "https://github.com/teamolimpo/synapsis",
+        app_name: str = "synapsis",
     ) -> None:
         self.api_key = api_key
         self.site_url = site_url
