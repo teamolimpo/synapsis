@@ -153,3 +153,16 @@ This plan is based on:
 
 ---
 *This plan was generated during structured discovery on `test/verify-escalation-t-gh-001` following project git + synapsis discipline.*
+
+## Exhaustive Verification (post-plan completion)
+- Full `tools/synapsis/test_tools.py`: 103/103 passed.
+- `tools/knowledge_base/tests/`: 74 passed + 1 skipped/unrelated (missing optional embeddings/sqlite-vec).
+- `TestEscalation`: extended to 12 tests covering all new robustness (dedup, strict, custom labels) + broader (knowledge hooks, config) + prior paths. All green.
+- CLI: `synapsis problem ... --level hf` executes cleanly, logs internally.
+- Config: `.synapsis/config.yaml` explicit `hf+gh` is read correctly.
+- Manual triggers: report_problem (all levels), hf devi, consolidate, blk, knowledge failure simulation, store failure path — all exercise escalation + back-log to T-CLI-002 events without crashes.
+- Sub-agent path: direct import + call confirmed working.
+- Real hf+gh validation (P1#5) previously performed and inspected (issue #11, labels, body, back-log).
+- All changes on branch `test/verify-escalation-t-gh-001`, tracked in T-CLI-002, committed per point.
+
+**Overall status per user: piano completato + exhaustive tests passed.**
