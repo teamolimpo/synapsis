@@ -914,22 +914,17 @@ def task(
 
         result = store.update_task_status(task_id=tid, new_status=effective_status, note=note)
 
-        # T-GH-001: auto-escalation on blk (improved for P0 #2)
-        # - now passes sid when the caller provides it (e.g. from current session)
-        # - richer body for better issue context
+        # T-GH-001: auto-escalation on blk (improved for P0 #2 + P2 #6 workpad)
         if effective_status == "blk":
             try:
                 from tools.synapsis.report import report_problem
 
-                esc_body = note or "(no note provided on blk transition)"
-                if sid:
-                    esc_body = f"sid: {sid}\n{esc_body}"
-
                 report_problem(
                     title=f"Task {tid} blocked",
-                    body=esc_body,
+                    body=note or "(no note provided on blk transition)",
                     tref=tid,
                     sid=sid,
+                    error=note or "(no note provided on blk transition)",
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.warning(f"Auto-escalation on blk failed (non-fatal): {exc}")
@@ -1318,8 +1313,7 @@ def consolidate(
     if auto:
         result = store.auto_consolidate_if_needed(session_id=sid)
 
-        # T-GH-001 P0 #2: escalate on hygiene pain (auto consolidation triggered)
-        # per escalation-policy.md (high unconsolidated obs, old obs, etc.)
+        # T-GH-001 P0 #2 + P2 #6: escalate on hygiene pain (auto)
         if result.get("triggered"):
             try:
                 from tools.synapsis.report import report_problem
@@ -1329,10 +1323,11 @@ def consolidate(
                     body=(
                         f"Auto-consolidation triggered: {result.get('reason')}\n"
                         f"Consolidated: {result.get('consolidated', 0)} obs\n"
-                        f"Candidates: {result.get('candidate_count', '?')}\n\n"
-                        "Per escalation-policy.md: hygiene/consolidate detects high pain."
+                        f"Candidates: {result.get('candidate_count', '?')}"
                     ),
                     sid=sid,
+                    error=f"Auto-consolidation triggered: {result.get('reason')}",
+                    analysis="Review consolidated observations and contradictions; consider follow-up task or fix.",
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.warning(f"Auto-escalation on consolidate hygiene failed (non-fatal): {exc}")
@@ -1375,8 +1370,7 @@ def consolidate(
     patterns_detected = len(top_entities)
     contradictions_detected = len(contradictions)
 
-    # T-GH-001 P0 #2: escalate on hygiene pain (contradictions detected in consolidate)
-    # per escalation-policy.md
+    # T-GH-001 P0 #2 + P2 #6: escalate on hygiene pain (contradictions)
     if contradictions_detected > 0:
         try:
             from tools.synapsis.report import report_problem
@@ -1386,10 +1380,11 @@ def consolidate(
                 body=(
                     f"Contradictions detected: {contradictions_detected}\n"
                     f"Patterns detected: {patterns_detected}\n"
-                    f"Candidates consolidated: {len(candidates)}\n\n"
-                    "Per escalation-policy.md: hygiene/consolidate detects high pain (contradictions)."
+                    f"Candidates consolidated: {len(candidates)}"
                 ),
                 sid=sid,
+                error=f"Contradictions detected: {contradictions_detected}",
+                analysis="Investigate contradictions in observations; create follow-up task or handoff if needed.",
             )
         except Exception as exc:  # noqa: BLE001
             logger.warning(f"Auto-escalation on consolidate contradictions failed (non-fatal): {exc}")

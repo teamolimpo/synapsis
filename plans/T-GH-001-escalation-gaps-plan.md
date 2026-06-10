@@ -79,13 +79,15 @@ This plan is based on:
    - (See task T-CLI-002 logs and gh issue view for full artifact.)
 
 ### P2 — Medium Priority (Hygiene & Completeness)
-6. **Improve Issue Body / Workpad Quality**
-   - Current enrichment in `report.py` is basic (tref/sid header + raw body).
-   - The policy and `synapsis-problem.yml` template define nice sections: Context, Error/Deviation/Block, Attempted workaround, What needs to be analyzed.
-   - **Actions**:
-     - Make `report_problem` accept structured input or auto-generate better sections.
-     - Align the auto-generated body more closely with the template.
-     - Support passing extra context (recent hf path, git sha, etc.).
+6. **Improve Issue Body / Workpad Quality** — **IN PROGRESS (core done)**
+   - `report_problem` now accepts optional structured params: `context`, `error`, `workaround`, `analysis`.
+   - Auto-enriches with tref/sid + git short sha.
+   - Produces proper sections matching policy + template (Context, Error/Deviation/Block, Attempted workaround, What needs to be analyzed).
+   - Updated call sites (blk, hf devi, consolidate hooks) to pass `error=` and `analysis=` where meaningful.
+   - Legacy `body=` still works (goes into Error section).
+   - Git sha helper added (best-effort).
+   - Tests still pass; demo call with structured fields succeeds.
+   - (Further polish: more auto-context from recent hf, better defaults in call sites can be follow-up.)
 
 7. **sid Propagation & Observability**
    - `report_problem` accepts `sid`, but the only auto path (blk) never passes it.

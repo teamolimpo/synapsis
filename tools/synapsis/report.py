@@ -175,6 +175,20 @@ def _create_github_issue(title: str, body: str, labels: list[str]) -> str | None
     return None
 
 
+def _get_git_sha() -> str:
+    """Best-effort short git SHA for Context in escalations."""
+    try:
+        import subprocess
+
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except Exception:
+        return "N/A"
+
+
 def report_problem(
     title: str,
     body: str,
@@ -183,12 +197,21 @@ def report_problem(
     sid: str | None = None,
     level: str | None = None,
     labels: list[str] | None = None,
+    # Structured workpad fields (P2 #6) - align with escalation-policy.md + synapsis-problem.yml
+    context: str | None = None,
+    error: str | None = None,
+    workaround: str | None = None,
+    analysis: str | None = None,
 ) -> dict[str, Any]:
     """Report a problem according to the configured escalation level.
 
     Always attempts to log back into synapsis when tref is provided.
     Creates a GitHub Issue (with the synapsis-problem template if present)
     only when the effective level is "hf+gh".
+
+    Structured fields (context, error, workaround, analysis) are preferred
+    for better workpad alignment with the policy and issue template.
+    If omitted, falls back to using the flat `body` under Error/Deviation/Block.
     """
     effective = level or get_problem_reporting_level()
     labels = labels or ["synapsis", "self-report"]
@@ -212,12 +235,27 @@ def report_problem(
 
     # 3. GitHub Issue
     if effective == "hf+gh":
-        # enrich body a little (workpad-style header)
+        git_sha = _get_git_sha()
+        # Build workpad-style body matching policy + template sections
+        main_error = error or body or "(see title and details)"
+        ctx = context or ""
+        if tref or sid or git_sha:
+            ctx = (ctx + "\n" if ctx else "") + "\n".join(
+                f"- {k}: {v}"
+                for k, v in [
+                    ("tref", tref or "N/A"),
+                    ("sid", sid or "N/A"),
+                    ("git", git_sha),
+                ]
+                if v
+            )
+
         enriched = (
             f"**Synapsis self-detected problem** (level={effective})\n\n"
-            f"- tref: {tref or 'N/A'}\n"
-            f"- sid: {sid or 'N/A'}\n\n"
-            f"{body}\n\n"
+            f"**Context**\n{ctx.strip() or '(none provided)'}\n\n"
+            f"**Error / Deviation / Block**\n{main_error.strip()}\n\n"
+            f"**Attempted workaround**\n{(workaround or '(none provided)').strip()}\n\n"
+            f"**What needs to be analyzed / next action**\n{(analysis or '(to be determined)').strip()}\n\n"
             "---\n"
             "*Created by synapsis reporter – see escalation-policy.md*"
         )
