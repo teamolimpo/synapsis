@@ -104,11 +104,13 @@ This plan is based on:
    - Documented state of automatic vs explicit escalation.
    - All changes committed on the branch as part of P2 #8 / T-CLI-002.
 
-9. **Robustness & Edge Cases**
-   - Better messages when `gh` is not authenticated or rate-limited.
-   - Duplicate issue prevention heuristics (e.g. recent similar issues for the same tref)?
-   - Support for additional custom labels via the call.
-   - Consider whether best-effort should ever have a "strict" mode that surfaces failures to the caller.
+9. **Robustness & Edge Cases** — **DONE**
+   - Improved error messages in `_ensure_label` and `_create_github_issue` for auth failures (`gh auth login`) and rate limits (clear warnings, still best-effort).
+   - Added basic duplicate prevention: before gh create, check recent task events for tref; if a prior escalation already logged a `gh=` URL, skip creating another issue (simple recent-same-tref heuristic).
+   - Custom labels: `report_problem(..., labels=[...])` now always merges with core ["synapsis", "self-report"] (deduped).
+   - Added `strict: bool = False` param: if True and hf+gh creation fails, result["error"] is set (and logged at error level). Default remains best-effort (never breaks caller).
+   - Tests still pass; changes committed.
+   - (Further: could add time-based dedup window or gh search for open issues with same tref; out of scope for this point.)
 
 10. **Broader Integration Points**
     - Wire escalation from other core paths (knowledge indexing failures, consolidate pain, store errors, etc.).
