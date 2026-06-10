@@ -464,6 +464,7 @@ def hf_new(
     devi: str | None = None,
     st: str = "done",
     prio: str = "med",
+    sid: str | None = None,  # P2 #7: thread sid for escalation observability
 ) -> dict[str, Any]:
     """Create a new handoff: generate ref, write file, index in DB, parse wiki.
 
@@ -480,6 +481,7 @@ def hf_new(
         devi: Optional deviation block.
         st: Status (done, fail, hold, kill).
         prio: Priority (low, med, high, crit).
+        sid: Optional session id (P2 #7) for escalation logging and observes.
 
     Returns:
         Dict with ``ref``, ``file`` (relative path), ``wiki`` (or None), ``ts``.
@@ -562,6 +564,28 @@ def hf_new(
         logger.error(f"Wiki section processing failed (non-blocking): {exc}")
 
     logger.info(f"Handoff created: ref={ref}, file={file_path_rel}, hash={hash_str}")
+
+    # T-GH-001 escalation (P0#1 + P2#6 workpad): trigger on handoff with non-"done" st or non-empty devi
+    if (st and str(st).lower() in ("fail", "hold", "kill")) or (devi and str(devi).strip()):
+        try:
+            from tools.synapsis.report import report_problem
+
+            esc_title = f"Handoff {ref} escalated (st={st})" if st and str(st).lower() != "done" else f"Handoff {ref} with deviation"
+            esc_error = devi or note or f"handoff with st={st}"
+            esc_analysis = "Review the handoff deviation; consider follow-up task or process adjustment."
+
+            report_problem(
+                title=esc_title,
+                body=esc_error,
+                tref=tref,
+                sid=sid,
+                context=f"Handoff file: {file_path_rel}",
+                error=esc_error,
+                analysis=esc_analysis,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"Auto-escalation on handoff failed (non-fatal): {exc}")
+
     return {
         "ref": ref,
         "hash": hash_str,

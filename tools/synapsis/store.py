@@ -1109,6 +1109,16 @@ class SynapsisStore:
             }
         except Exception as exc:
             logger.error(f"auto_consolidate: failed — {exc}")
+            try:
+                from tools.synapsis.report import report_problem
+                report_problem(
+                    title="Store auto-consolidate failure",
+                    body=str(exc),
+                    error=str(exc),
+                    analysis="Critical hygiene failure during consolidation. Check DB, locks, or schema. May indicate deeper store corruption.",
+                )
+            except Exception:
+                pass  # never break store on escalation
             return {
                 "triggered": True,
                 "reason": f"error: {exc}",

@@ -43,26 +43,28 @@ def _try_log_internal(
     level: str,
 ) -> None:
     """Best-effort: log the escalation back into synapsis (task event + observe)."""
-    if not tref:
+    if not tref and not sid:
         return
     try:
         store = SynapsisStore()
-        details = f"[escalation] level={level} title={title[:80]}"
-        if issue_url:
-            details += f" gh={issue_url}"
-        store.add_task_event(
-            task_id=tref,
-            event_type="note",
-            details=details,
-            handoff_path=None,
-        )
+        if tref:
+            details = f"[escalation] level={level} title={title[:80]}"
+            if issue_url:
+                details += f" gh={issue_url}"
+            store.add_task_event(
+                task_id=tref,
+                event_type="note",
+                details=details,
+                handoff_path=None,
+            )
         if sid:
+            # loud session observe for hf+notify / escalations (P2 #7)
             store.add_observation(
                 session_id=sid,
                 type="system",
                 content=f"[ESCALATION {level}] {title} -> {issue_url or 'internal only'}",
                 agent="Poros",
-                entities=["escalation", tref],
+                entities=["escalation", tref or "N/A"],
                 handoff_path=None,
                 task_ref=tref,
             )
@@ -100,10 +102,16 @@ def _ensure_label(label: str) -> bool:
         logger.info(f"Created missing label '{label}' for escalation reports")
         return True
     except subprocess.CalledProcessError as exc:
-        stderr = (exc.stderr or "").lower()
+        raw = exc.stderr or b"" if isinstance(exc.stderr, (bytes, bytearray)) else (exc.stderr or "")
+        stderr = raw.decode(errors="ignore").lower() if isinstance(raw, (bytes, bytearray)) else str(raw).lower()
         if "already exists" in stderr:
             return True
-        logger.warning(f"Could not create label '{label}' (proceeding without it): {exc.stderr.strip()[:200]}")
+        if "authentication" in stderr or "not logged in" in stderr or "gh auth login" in stderr:
+            logger.warning(f"gh CLI not authenticated for label creation. Run `gh auth login` (escalation will proceed without custom label).")
+        elif "rate limit" in stderr or "too many requests" in stderr:
+            logger.warning(f"GitHub rate limit while creating label '{label}'. Proceeding without it.")
+        else:
+            logger.warning(f"Could not create label '{label}' (proceeding without it): {str(exc.stderr or '')[:200]}")
         return False
     except Exception as exc:  # noqa: BLE001
         logger.debug(f"Label creation for '{label}' skipped: {exc}")
@@ -150,10 +158,17 @@ def _create_github_issue(title: str, body: str, labels: list[str]) -> str | None
             logger.info(f"Created GH issue: {url}")
             return url
         except FileNotFoundError:
-            logger.warning("`gh` CLI not found in PATH – cannot create GitHub issue")
+            logger.warning("`gh` CLI not found in PATH – cannot create GitHub issue. Install gh and run `gh auth login` for hf+gh escalations.")
             return None
         except subprocess.CalledProcessError as exc:
-            logger.warning(f"`gh issue create` failed: {exc.stderr.strip() or exc}")
+            raw = exc.stderr or b"" if isinstance(exc.stderr, (bytes, bytearray)) else (exc.stderr or "")
+            stderr = raw.decode(errors="ignore").lower() if isinstance(raw, (bytes, bytearray)) else str(raw).lower()
+            if "authentication" in stderr or "not logged in" in stderr or "gh auth login" in stderr:
+                logger.warning("gh CLI authentication failed. Run `gh auth login` to enable real GitHub issue creation for escalations (level=hf+gh).")
+            elif "rate limit" in stderr or "too many requests" in stderr:
+                logger.warning("GitHub rate limit exceeded while creating escalation issue. Consider using level=hf+notify for now or wait.")
+            else:
+                logger.warning(f"`gh issue create` failed: {str(exc.stderr or exc)[:200]}")
             return None
         except subprocess.TimeoutExpired:
             logger.warning("`gh issue create` timed out")
@@ -175,6 +190,20 @@ def _create_github_issue(title: str, body: str, labels: list[str]) -> str | None
     return None
 
 
+def _get_git_sha() -> str:
+    """Best-effort short git SHA for Context in escalations."""
+    try:
+        import subprocess
+
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except Exception:
+        return "N/A"
+
+
 def report_problem(
     title: str,
     body: str,
@@ -183,15 +212,31 @@ def report_problem(
     sid: str | None = None,
     level: str | None = None,
     labels: list[str] | None = None,
+    # Structured workpad fields (P2 #6) - align with escalation-policy.md + synapsis-problem.yml
+    context: str | None = None,
+    error: str | None = None,
+    workaround: str | None = None,
+    analysis: str | None = None,
+    strict: bool = False,  # P2 #9: if True and gh creation fails for hf+gh, surface error
 ) -> dict[str, Any]:
     """Report a problem according to the configured escalation level.
 
     Always attempts to log back into synapsis when tref is provided.
     Creates a GitHub Issue (with the synapsis-problem template if present)
     only when the effective level is "hf+gh".
+
+    Structured fields (context, error, workaround, analysis) are preferred
+    for better workpad alignment with the policy and issue template.
+    If omitted, falls back to using the flat `body` under Error/Deviation/Block.
+
+    strict=True: if hf+gh and issue creation fails, result will contain "error".
     """
     effective = level or get_problem_reporting_level()
-    labels = labels or ["synapsis", "self-report"]
+
+    # P2 #9: support additional custom labels while always including core ones
+    core_labels = ["synapsis", "self-report"]
+    provided = labels or []
+    all_labels = list(dict.fromkeys(core_labels + provided))  # dedup, preserve order
 
     result: dict[str, Any] = {
         "title": title,
@@ -199,6 +244,7 @@ def report_problem(
         "internal_logged": False,
         "notified": False,
         "issue_url": None,
+        "error": None,
     }
 
     # 1. Internal logging (best effort)
@@ -212,19 +258,53 @@ def report_problem(
 
     # 3. GitHub Issue
     if effective == "hf+gh":
-        # enrich body a little (workpad-style header)
+        # P2 #9: basic duplicate prevention for same tref (recent escalation already logged with gh URL)
+        if tref:
+            try:
+                store = SynapsisStore()
+                recent = store.get_task_events(tref, limit=5)
+                for e in recent or []:
+                    det = str(e.get("details") or "")
+                    if "[escalation]" in det.lower() and "gh=" in det.lower():
+                        logger.info(f"Skipping duplicate hf+gh escalation for tref={tref} (recent issue already logged)")
+                        store.close()
+                        return result
+                store.close()
+            except Exception:
+                pass
+
+        git_sha = _get_git_sha()
+        # Build workpad-style body matching policy + template sections
+        main_error = error or body or "(see title and details)"
+        ctx = context or ""
+        if tref or sid or git_sha:
+            ctx = (ctx + "\n" if ctx else "") + "\n".join(
+                f"- {k}: {v}"
+                for k, v in [
+                    ("tref", tref or "N/A"),
+                    ("sid", sid or "N/A"),
+                    ("git", git_sha),
+                ]
+                if v
+            )
+
         enriched = (
             f"**Synapsis self-detected problem** (level={effective})\n\n"
-            f"- tref: {tref or 'N/A'}\n"
-            f"- sid: {sid or 'N/A'}\n\n"
-            f"{body}\n\n"
+            f"**Context**\n{ctx.strip() or '(none provided)'}\n\n"
+            f"**Error / Deviation / Block**\n{main_error.strip()}\n\n"
+            f"**Attempted workaround**\n{(workaround or '(none provided)').strip()}\n\n"
+            f"**What needs to be analyzed / next action**\n{(analysis or '(to be determined)').strip()}\n\n"
             "---\n"
             "*Created by synapsis reporter – see escalation-policy.md*"
         )
-        url = _create_github_issue(title, enriched, labels)
+        url = _create_github_issue(title, enriched, all_labels)
         if url:
             result["issue_url"] = url
             # log the URL back
             _try_log_internal(tref, sid, title, url, effective)
+        else:
+            result["error"] = "Failed to create GitHub issue"
+            if strict:
+                logger.error(f"Strict mode: hf+gh escalation failed to create issue for title={title[:60]}")
 
     return result

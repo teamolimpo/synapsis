@@ -37,6 +37,29 @@ This project uses **synapsis** (the MCP server registered in `.grok/config.toml`
    - This forces visibility and analysis instead of silent workarounds.
    - `synapsis__admin(act="stats")`
 
+   **How to escalate from your agent (explicit)**:
+   ```python
+   from tools.synapsis.report import report_problem
+
+   report_problem(
+       title="Task T-FOO-123 blocked on X",
+       body="Detailed symptom...",
+       tref="T-FOO-123",
+       sid="ses_xxx",  # if you have the current session id
+       # Preferred structured form (aligns with policy + template):
+       error="Exact error / deviation / block description",
+       workaround="What was tried (if any)",
+       analysis="What needs investigation or next action",
+   )
+   ```
+   Use `level=...` override only for testing. The auto paths (task blk, hf devi/bad-st, consolidate hygiene) already call this internally.
+
+   **Automatic triggers (current state)**:
+   - `task` update to `blk` (in server.py)
+   - `hf_new` when `devi` non-empty or `st` in (fail, hold, kill)
+   - `consolidate` when auto-triggered on high unconsolidated/old obs or contradictions detected
+   See the call sites in `tools/synapsis/server.py` and `hf.py` for the exact conditions and data passed.
+
 ## Git Workflow Discipline (companion to memory / synapsis discipline)
 **Core rule**: Before *any* modification (code, docs, config, even trivial one-liners or typos) create a dedicated branch. **Never work directly on main**. All changes land on main via Pull Request after CI gates and review (self-review artifact acceptable for solo rigor).
 
