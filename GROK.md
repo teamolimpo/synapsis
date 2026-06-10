@@ -119,6 +119,22 @@ Full task state machine in one tool.
 **Escalation (see also AGENTS.md and .synapsis/escalation-policy.md)**:
 When a task goes `blk`, a handoff has `st=fail/hold` + `devi`, or you apply a non-trivial workaround, escalate according to the level in the config (default `hf+gh`). The reporter will create a GitHub Issue with a structured "workpad" body and log the URL back. This is the mechanism that lets a solo human + agents "act as if we were many".
 
+**Explicit escalation from agent code** (preferred for non-trivial workarounds or custom cases):
+```python
+from tools.synapsis.report import report_problem
+
+report_problem(
+    title="...",
+    body="...",
+    tref="T-XXX-001",
+    sid="ses_...",  # when available
+    error="What exactly failed / the deviation",
+    workaround="What you tried (optional)",
+    analysis="What should be investigated next (optional)",
+)
+```
+Auto paths (blk, devi handoffs, consolidate pain) already call this for you. See `tools/synapsis/report.py` and the triggers in `server.py` / `hf.py`. Use the CLI `synapsis problem "title" --tref T-XXX` for manual/one-off cases.
+
 ### synapsis__hf (Handoffs — the most important discipline)
 `act="new"` or `act="get"`.
 

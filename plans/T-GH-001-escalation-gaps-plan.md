@@ -97,11 +97,12 @@ This plan is based on:
    - Main propagation gap for handoffs closed. Further threading (e.g. in more internal paths) can follow.
 
 ### P3 — Lower Priority / Polish
-8. **Documentation & Examples**
-   - Add concrete usage examples (both explicit `report_problem` calls from agent code and the auto paths).
-   - Document the current state of automatic triggers vs. explicit escalation.
-   - Update GROK.md / AGENTS.md with "how to escalate from your agent" guidance if missing.
-   - Possibly add a small example in `Documents/examples/`.
+8. **Documentation & Examples** — **DONE**
+   - Added `Documents/examples/escalation.md` with concrete explicit `report_problem` example (structured + flat), CLI usage, description of automatic triggers, workpad convention, and tips.
+   - Expanded escalation section in AGENTS.md with explicit code example + current list of auto triggers (blk, hf devi, consolidate).
+   - Enhanced GROK.md escalation paragraph with explicit call pattern and pointer to auto paths + CLI.
+   - Documented state of automatic vs explicit escalation.
+   - All changes committed on the branch as part of P2 #8 / T-CLI-002.
 
 9. **Robustness & Edge Cases**
    - Better messages when `gh` is not authenticated or rate-limited.
