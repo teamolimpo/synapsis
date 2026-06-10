@@ -27,22 +27,22 @@ This rule formalizes the explicit lesson from hf-8565 (T-GH-001 reflection): dir
 ## Branch Protection (target repo settings)
 We use a **Repository Ruleset** named `main-branch-discipline` (Settings → Rules → Rulesets) targeting `~DEFAULT_BRANCH`. This is more modern and flexible than classic branch protection rules.
 
-Current active rules in the `main-branch-discipline` ruleset (targeting `~DEFAULT_BRANCH`, as of 2026-06-10 on `chore/git-workflow-discipline` after full configuration):
+Current active rules in the `main-branch-discipline` ruleset (targeting `~DEFAULT_BRANCH`, as of 2026-06-10):
 
 - Require a pull request before merging
   - Required approving reviews: 0 (solo "act as team" mode)
   - Dismiss stale pull request approvals when new commits are pushed: enabled
   - Require approval of the most recent reviewable push: **disabled** (for now)
     - Reason: when you are the only person with write access, enabling this creates an unresolvable block ("someone other than the last pusher must approve"). We keep it off while solo. It can (and should) be turned back on as soon as there is at least one other collaborator with write access.
-- Require status checks to pass before merging: `ci` (GitHub Actions)
-  - Require branches to be up to date before merging: **enabled** (strict)
 - Require linear history: enabled
 - Block force pushes: enabled
 - Block branch deletions: enabled
 
+(Note: the "Require status checks to pass before merging: `ci` (strict)" rule that was added during T-CI-001 was manually removed from the live ruleset during merge of long-lived escalation work — see T-CI-002 below. The minimal `ci.yml` workflow remains in the repo and can still be used as a signal.)
+
 Bypass: never (the ruleset cannot be bypassed).
 
-**T-CI-001 (high priority)**: Completed. Minimal CI workflow added + "Require status checks" (with strict) re-enabled in the ruleset.
+**T-CI-001 (high priority)**: Completed. Minimal CI workflow added. "Require status checks" (with strict) was temporarily enabled in the ruleset but later relaxed for the reasons documented in T-CI-002.
 
 Note on solo configuration: the "Require approval of the most recent reviewable push" setting is intentionally left **disabled** while there is only one person with write access (see explanation above). The other rules (PR required, linear history, status checks strict, no force push, no direct push to main) already provide strong mechanical enforcement.
 
@@ -70,7 +70,13 @@ Full map, source assessments (Tier 1 per source + Tier 2 per finding), SIFT deta
 - Reference it in handoffs, task logs, and observations for any git-related work.
 - Update AGENTS.md + this file + GROK.md together when patterns evolve (per AGENTS guidance).
 - For significant process decisions or deviations, produce a formal handoff (`/handoff` skill or direct `synapsis__hf`) + task log (evt "hr").
-- **T-CI-001 completed** (2026-06-10): Minimal CI workflow (`ci` check) added and "Require status checks to pass before merging" (with strict "Require branches to be up to date") enabled in the `main-branch-discipline` ruleset. The ruleset is now fully aligned with the SOP.
+- **T-CI-001** (2026-06-10): Minimal CI workflow added.
+
+**T-CI-002** (2026-06-10): During landing of major escalation work on a long-lived feature branch (`test/verify-escalation-t-gh-001`, PRs #39/#40), the 'ci' required status check (strict) blocked the merge despite the workflow file being present in the tree and the job having run. The check showed "Expected — Waiting for status to be reported" / empty statusCheckRollup on the head SHA (classic head-SHA + strict + PR-only trigger + minimal placeholder friction, confirmed by proteo SIFT in hf-9cbf and mechanics in hf-334e). The rule was manually removed from the live ruleset to unblock the merge. 
+
+This was a process deviation ("devi") from the policy as documented at the time ("Bypass: never"). Research (hf-af55) surfaced it as a known practitioner pattern for exactly these conditions. Current live ruleset has no required_status_checks for 'ci'. The minimal workflow stays (useful signal even if not mechanically required).
+
+Doc updated for honesty (no more drift between loaded rules and reality). Any future re-enable or relax must follow the hygiene in "Enforcement & Evolution" + explicit handoff + task log.
 
 Future enhancements (optional): pre-commit/push hooks, CI checks that fail on direct main patterns, or branch naming conventions.
 
