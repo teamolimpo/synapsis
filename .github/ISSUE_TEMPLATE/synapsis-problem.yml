@@ -1,0 +1,47 @@
+name: Synapsis Self-Detected Problem
+description: Structured report for errors, blocks, deviations or non-trivial workarounds (used by the synapsis reporter).
+labels:
+  - synapsis
+  - self-report
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This issue was (or can be) created automatically by the synapsis reporter.**
+        It forces visibility of problems that should not be silently worked around.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: sid, tref, recent handoff or observation, git commit, etc.
+      placeholder: |
+        sid: ses_...
+        tref: T-XXX-001
+        ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: error
+    attributes:
+      label: Error / Deviation / Block
+      description: What exactly happened or was detected.
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Attempted workaround (if any)
+      description: What was tried to bypass the problem.
+    validations:
+      required: false
+
+  - type: textarea
+    id: analysis
+    attributes:
+      label: What needs to be analyzed / next action
+      description: Proposed investigation or human action.
+    validations:
+      required: false

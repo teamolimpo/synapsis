@@ -116,6 +116,9 @@ Full task state machine in one tool.
 - Use `owner` to scope (default "Poros"; tests sometimes use "GrokTest").
 - Query with `evts: true` when you need history.
 
+**Escalation (see also AGENTS.md and .synapsis/escalation-policy.md)**:
+When a task goes `blk`, a handoff has `st=fail/hold` + `devi`, or you apply a non-trivial workaround, escalate according to the level in the config (default `hf+gh`). The reporter will create a GitHub Issue with a structured "workpad" body and log the URL back. This is the mechanism that lets a solo human + agents "act as if we were many".
+
 ### synapsis__hf (Handoffs — the most important discipline)
 `act="new"` or `act="get"`.
 

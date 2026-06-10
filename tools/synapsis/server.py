@@ -911,6 +911,20 @@ def task(
             return json.dumps({"error": str(e)})
 
         result = store.update_task_status(task_id=tid, new_status=effective_status, note=note)
+
+        # Minimal initial wiring for T-GH-001 (semplice semplice)
+        if effective_status == "blk":
+            try:
+                from tools.synapsis.report import report_problem
+
+                report_problem(
+                    title=f"Task {tid} blocked",
+                    body=note or "(no note provided on blk transition)",
+                    tref=tid,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(f"Auto-escalation on blk failed (non-fatal): {exc}")
+
         return _j(result)
 
     # ── log ───────────────────────────────────────────────────────

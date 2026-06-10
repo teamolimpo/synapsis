@@ -34,6 +34,8 @@ from tools.common.config import (
 )
 from tools.common.paths import resolve_relative
 
+from tools.synapsis.report import report_problem
+
 # ---------------------------------------------------------------------------
 # CLI App
 # ---------------------------------------------------------------------------
@@ -404,6 +406,33 @@ def unexclude(
 
 
 app.add_typer(knowledge_app, name="knowledge")
+
+
+# ---------------------------------------------------------------------------
+# Escalation / problem reporting (T-GH-001)
+# ---------------------------------------------------------------------------
+
+@app.command()
+def problem(
+    title: str = typer.Argument(..., help="Short title of the self-detected problem"),
+    body: str | None = typer.Option(None, "--body", "-b", help="Markdown body (or use template)"),
+    tref: str | None = typer.Option(None, "--tref", help="Task ref e.g. T-XXX-001"),
+    level: str | None = typer.Option(None, "--level", help="Override escalation level (off|hf|hf+notify|hf+gh)"),
+) -> None:
+    """Report a problem (respects .synapsis/config.yaml escalation.problem_reporting)."""
+    try:
+        result = report_problem(
+            title=title,
+            body=body or "(body provided via template or omitted)",
+            tref=tref,
+            level=level,
+        )
+        print(json.dumps(result, indent=2))
+        if result.get("issue_url"):
+            print(f"\nGitHub issue: {result['issue_url']}")
+    except Exception as e:
+        logger.error(f"problem command failed: {e}")
+        sys.exit(1)
 
 
 # ---------------------------------------------------------------------------

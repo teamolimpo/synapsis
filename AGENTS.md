@@ -28,6 +28,13 @@ This project uses **synapsis** (the MCP server registered in `.grok/config.toml`
    - Update tasks.
    - `synapsis__session(act="summarize")`
    - `synapsis__consolidate(auto=true, dry=true)` — review, then apply if sensible.
+
+6. **Escalation (T-GH-001 – solo-in-GH-repo "act as if we were many")**
+   - Problems (blk, hf st=fail/hold+devi, critical errors, non-trivial workarounds, hygiene pain) must be externalized according to the level in `.synapsis/config.yaml` (`escalation.problem_reporting`: off | hf | hf+notify | hf+gh).
+   - The `synapsis problem ...` CLI (or direct call to `tools.synapsis.report.report_problem`) creates a structured GitHub Issue (using the synapsis-problem template when present) when level=`hf+gh`.
+   - Always log the GH issue ref back into the task (and observe).
+   - See `.synapsis/escalation-policy.md` and the comparative handoff hf-6524 for the exact rules and workpad-style body convention.
+   - This forces visibility and analysis instead of silent workarounds.
    - `synapsis__admin(act="stats")`
 
 ## Project Skills (recommended way to use synapsis)

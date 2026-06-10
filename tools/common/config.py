@@ -48,6 +48,21 @@ _DEFAULT_KNOWLEDGE: dict[str, Any] = {
     "heading_levels": [2, 3],
 }
 
+# Escalation / problem reporting levels for "solo but act as many" mode.
+# Controls what happens on detected problems (task blk, hf st=fail/hold+devi,
+# critical errors, explicit "workaround non-trivial", hygiene pain, etc.).
+# Internal HF (handoff + task log + observe) is ALWAYS done by discipline.
+# This only adds extra external escalation.
+_DEFAULT_ESCALATION: dict[str, Any] = {
+    # problem_reporting:
+    #   "off"        - nothing extra
+    #   "hf"         - only the mandatory internal handoff discipline
+    #   "hf+notify"  - internal + loud notification (loud observe / banner)
+    #   "hf+gh"      - internal + notify + auto-create GitHub Issue via `gh` CLI
+    # Recommended for solo-in-GH-repo: "hf+gh"
+    "problem_reporting": "hf+gh",
+}
+
 
 _config_cache: dict | None = None
 
@@ -221,6 +236,33 @@ knowledge:
 #
 # indexer:
 #   auto_reindex_on_handoff: true
+#
+# escalation:
+#   problem_reporting: "hf+gh"   # off | hf | hf+notify | hf+gh
+
+escalation:
+  # ------------------------------------------------------------------
+  # Problem / error escalation for solo-in-GH-repo "act as if we were many"
+  # ------------------------------------------------------------------
+  # Controls extra visibility when the system (or an agent) detects a real
+  # problem that should not be silently worked around (task -> blk,
+  # hf with st=fail/hold+devi, critical errors, explicit non-trivial
+  # workaround, hygiene/consolidate pain, etc.).
+  #
+  # Internal HF discipline (handoff + task log + observe) is always active.
+  # This setting only adds the *extra* layer.
+  #
+  # Values:
+  #   "off"        - do nothing extra
+  #   "hf"         - rely only on internal synapsis handoffs/tasks
+  #   "hf+notify"  - internal + make very visible (loud observe / banner)
+  #   "hf+gh"      - internal + notify + automatically create a GitHub Issue
+  #                  using the `gh` CLI (must be installed + authenticated).
+  #
+  # For working alone in a GitHub repo we recommend starting with "hf+gh".
+  # The created issue will use the synapsis-problem template (if present)
+  # and will be logged back into synapsis (task event + observation).
+  problem_reporting: "hf+gh"
 """
 
 
@@ -369,3 +411,37 @@ def remove_knowledge_exclude(pattern: str) -> list[str]:
 def get_effective_knowledge_config() -> dict[str, Any]:
     """Convenience: return the knowledge section after normalization (same as get_knowledge_config)."""
     return get_knowledge_config()
+
+
+# ---------------------------------------------------------------------------
+# Escalation config (added for T-GH-001 error-to-issue automation)
+# ---------------------------------------------------------------------------
+
+def get_escalation_config() -> dict[str, Any]:
+    """Return the 'escalation' section with safe defaults."""
+    raw = load_config().get("escalation", {})
+    if not isinstance(raw, dict):
+        raw = {}
+    merged = _DEFAULT_ESCALATION.copy()
+    merged.update(raw)
+    return merged
+
+
+def get_problem_reporting_level() -> str:
+    """Return the normalized problem_reporting level (off | hf | hf+notify | hf+gh)."""
+    cfg = get_escalation_config()
+    val = str(cfg.get("problem_reporting", "hf+gh")).lower().strip()
+    valid = {"off", "hf", "hf+notify", "hf+gh"}
+    if val in valid:
+        return val
+    # simple aliases
+    if val in ("none", "0", "false"):
+        return "off"
+    if val in ("internal", "hf_only"):
+        return "hf"
+    if val in ("notify", "hf_notify"):
+        return "hf+notify"
+    if val in ("gh", "github", "issue", "hf_gh", "full"):
+        return "hf+gh"
+    logger.warning(f"Unknown problem_reporting '{val}', falling back to 'hf+gh'")
+    return "hf+gh"
