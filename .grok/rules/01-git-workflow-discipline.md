@@ -27,17 +27,21 @@ This rule formalizes the explicit lesson from hf-8565 (T-GH-001 reflection): dir
 ## Branch Protection (target repo settings)
 We use a **Repository Ruleset** named `main-branch-discipline` (Settings → Rules → Rulesets) targeting `~DEFAULT_BRANCH`. This is more modern and flexible than classic branch protection rules.
 
-Current active rules (as of initial setup on `chore/git-workflow-discipline`):
+Current active rules in the `main-branch-discipline` ruleset (targeting `~DEFAULT_BRANCH`, as of 2026-06-10 on `chore/git-workflow-discipline` after full configuration):
+
 - Require a pull request before merging
   - Required approving reviews: 0 (solo "act as team" mode)
   - Require approval of the most recent reviewable push: enabled
   - Dismiss stale pull request approvals when new commits are pushed: enabled
+- Require status checks to pass before merging: `ci` (GitHub Actions)
+  - Require branches to be up to date before merging: **enabled** (strict)
 - Require linear history: enabled
 - Block force pushes: enabled
 - Block branch deletions: enabled
 
-**High priority pending item (T-CI-001)**: "Require status checks to pass before merging" (with "Require branches to be up to date before merging" = strict) is **temporarily disabled**.  
-Reason: no CI workflows exist yet in the repository. Once a minimal CI workflow is added (even a simple one that runs on PRs), we must immediately re-enable this rule and populate it with the real job names. This is tracked as high-priority task T-CI-001.
+Bypass: never (the ruleset cannot be bypassed).
+
+**T-CI-001 (high priority)**: Completed. Minimal CI workflow added + "Require status checks" (with strict) re-enabled in the ruleset. The ruleset is now at full intended strength for the CI gate.
 
 If the ruleset cannot be made fully strict immediately, the documented cultural rule + mandatory handoff call-outs for any deviation still apply. Use the T-GH-001 escalation mechanisms (see issue #3) for process "devi" or "blk".
 
@@ -63,7 +67,7 @@ Full map, source assessments (Tier 1 per source + Tier 2 per finding), SIFT deta
 - Reference it in handoffs, task logs, and observations for any git-related work.
 - Update AGENTS.md + this file + GROK.md together when patterns evolve (per AGENTS guidance).
 - For significant process decisions or deviations, produce a formal handoff (`/handoff` skill or direct `synapsis__hf`) + task log (evt "hr").
-- **High priority item tracked as T-CI-001**: Add a minimal CI workflow (even a trivial one) and immediately re-enable "Require status checks to pass before merging" (strict) in the `main-branch-discipline` ruleset. Until then the ruleset is intentionally not at full strength on the CI gate.
+- **T-CI-001 completed** (2026-06-10): Minimal CI workflow (`ci` check) added and "Require status checks to pass before merging" (with strict "Require branches to be up to date") enabled in the `main-branch-discipline` ruleset. The ruleset is now fully aligned with the SOP.
 
 Future enhancements (optional): pre-commit/push hooks, CI checks that fail on direct main patterns, or branch naming conventions.
 
