@@ -562,6 +562,38 @@ def hf_new(
         logger.error(f"Wiki section processing failed (non-blocking): {exc}")
 
     logger.info(f"Handoff created: ref={ref}, file={file_path_rel}, hash={hash_str}")
+
+    # T-GH-001 escalation: trigger on handoff with non-"done" st or non-empty devi
+    # (as required by .synapsis/escalation-policy.md)
+    if (st and str(st).lower() in ("fail", "hold", "kill")) or (devi and str(devi).strip()):
+        try:
+            from tools.synapsis.report import report_problem
+
+            esc_title = f"Handoff {ref} escalated (st={st})" if st and str(st).lower() != "done" else f"Handoff {ref} with deviation"
+            esc_body = (
+                f"**Handoff ref:** {ref}\n"
+                f"**Status (st):** {st}\n"
+                f"**tref:** {tref or 'N/A'}\n"
+                f"**File:** {file_path_rel}\n\n"
+            )
+            if devi:
+                esc_body += f"**Deviation (devi):**\n{devi}\n\n"
+            if note:
+                esc_body += f"**Note:** {note}\n\n"
+            esc_body += (
+                "This handoff was auto-escalated per escalation-policy.md "
+                "(handoff created with devi or st in fail/hold/kill)."
+            )
+
+            report_problem(
+                title=esc_title,
+                body=esc_body,
+                tref=tref,
+                # sid not threaded to hf_new yet; caller can escalate explicitly if needed
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"Auto-escalation on handoff failed (non-fatal): {exc}")
+
     return {
         "ref": ref,
         "hash": hash_str,
