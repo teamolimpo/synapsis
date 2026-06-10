@@ -102,7 +102,8 @@ def _ensure_label(label: str) -> bool:
         logger.info(f"Created missing label '{label}' for escalation reports")
         return True
     except subprocess.CalledProcessError as exc:
-        stderr = (exc.stderr or "").lower()
+        raw = exc.stderr or b"" if isinstance(exc.stderr, (bytes, bytearray)) else (exc.stderr or "")
+        stderr = raw.decode(errors="ignore").lower() if isinstance(raw, (bytes, bytearray)) else str(raw).lower()
         if "already exists" in stderr:
             return True
         if "authentication" in stderr or "not logged in" in stderr or "gh auth login" in stderr:
@@ -110,7 +111,7 @@ def _ensure_label(label: str) -> bool:
         elif "rate limit" in stderr or "too many requests" in stderr:
             logger.warning(f"GitHub rate limit while creating label '{label}'. Proceeding without it.")
         else:
-            logger.warning(f"Could not create label '{label}' (proceeding without it): {exc.stderr.strip()[:200]}")
+            logger.warning(f"Could not create label '{label}' (proceeding without it): {str(exc.stderr or '')[:200]}")
         return False
     except Exception as exc:  # noqa: BLE001
         logger.debug(f"Label creation for '{label}' skipped: {exc}")
@@ -160,13 +161,14 @@ def _create_github_issue(title: str, body: str, labels: list[str]) -> str | None
             logger.warning("`gh` CLI not found in PATH – cannot create GitHub issue. Install gh and run `gh auth login` for hf+gh escalations.")
             return None
         except subprocess.CalledProcessError as exc:
-            stderr = (exc.stderr or "").lower()
+            raw = exc.stderr or b"" if isinstance(exc.stderr, (bytes, bytearray)) else (exc.stderr or "")
+            stderr = raw.decode(errors="ignore").lower() if isinstance(raw, (bytes, bytearray)) else str(raw).lower()
             if "authentication" in stderr or "not logged in" in stderr or "gh auth login" in stderr:
                 logger.warning("gh CLI authentication failed. Run `gh auth login` to enable real GitHub issue creation for escalations (level=hf+gh).")
             elif "rate limit" in stderr or "too many requests" in stderr:
                 logger.warning("GitHub rate limit exceeded while creating escalation issue. Consider using level=hf+notify for now or wait.")
             else:
-                logger.warning(f"`gh issue create` failed: {exc.stderr.strip() or exc}")
+                logger.warning(f"`gh issue create` failed: {str(exc.stderr or exc)[:200]}")
             return None
         except subprocess.TimeoutExpired:
             logger.warning("`gh issue create` timed out")
