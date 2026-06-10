@@ -31,8 +31,9 @@ Current active rules in the `main-branch-discipline` ruleset (targeting `~DEFAUL
 
 - Require a pull request before merging
   - Required approving reviews: 0 (solo "act as team" mode)
-  - Require approval of the most recent reviewable push: enabled
   - Dismiss stale pull request approvals when new commits are pushed: enabled
+  - Require approval of the most recent reviewable push: **disabled** (for now)
+    - Reason: when you are the only person with write access, enabling this creates an unresolvable block ("someone other than the last pusher must approve"). We keep it off while solo. It can (and should) be turned back on as soon as there is at least one other collaborator with write access.
 - Require status checks to pass before merging: `ci` (GitHub Actions)
   - Require branches to be up to date before merging: **enabled** (strict)
 - Require linear history: enabled
@@ -41,7 +42,9 @@ Current active rules in the `main-branch-discipline` ruleset (targeting `~DEFAUL
 
 Bypass: never (the ruleset cannot be bypassed).
 
-**T-CI-001 (high priority)**: Completed. Minimal CI workflow added + "Require status checks" (with strict) re-enabled in the ruleset. The ruleset is now at full intended strength for the CI gate.
+**T-CI-001 (high priority)**: Completed. Minimal CI workflow added + "Require status checks" (with strict) re-enabled in the ruleset.
+
+Note on solo configuration: the "Require approval of the most recent reviewable push" setting is intentionally left **disabled** while there is only one person with write access (see explanation above). The other rules (PR required, linear history, status checks strict, no force push, no direct push to main) already provide strong mechanical enforcement.
 
 If the ruleset cannot be made fully strict immediately, the documented cultural rule + mandatory handoff call-outs for any deviation still apply. Use the T-GH-001 escalation mechanisms (see issue #3) for process "devi" or "blk".
 
