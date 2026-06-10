@@ -20,7 +20,8 @@ knowledge:
     - Library/Handoff/
     # Add your own as needed:
     # - Library/notes/
-    # - Library/SOPs/
+    - SOPs/                  # Framework / shared SOPs (at root — visible part of the project)
+    - Library/SOPs/          # Private / internal SOPs (vault-style, for daily work)
     # - Library/research/
 
   # ------------------------------------------------------------------
