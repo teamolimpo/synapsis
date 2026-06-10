@@ -43,26 +43,28 @@ def _try_log_internal(
     level: str,
 ) -> None:
     """Best-effort: log the escalation back into synapsis (task event + observe)."""
-    if not tref:
+    if not tref and not sid:
         return
     try:
         store = SynapsisStore()
-        details = f"[escalation] level={level} title={title[:80]}"
-        if issue_url:
-            details += f" gh={issue_url}"
-        store.add_task_event(
-            task_id=tref,
-            event_type="note",
-            details=details,
-            handoff_path=None,
-        )
+        if tref:
+            details = f"[escalation] level={level} title={title[:80]}"
+            if issue_url:
+                details += f" gh={issue_url}"
+            store.add_task_event(
+                task_id=tref,
+                event_type="note",
+                details=details,
+                handoff_path=None,
+            )
         if sid:
+            # loud session observe for hf+notify / escalations (P2 #7)
             store.add_observation(
                 session_id=sid,
                 type="system",
                 content=f"[ESCALATION {level}] {title} -> {issue_url or 'internal only'}",
                 agent="Poros",
-                entities=["escalation", tref],
+                entities=["escalation", tref or "N/A"],
                 handoff_path=None,
                 task_ref=tref,
             )

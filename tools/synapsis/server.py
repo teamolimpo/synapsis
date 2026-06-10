@@ -1463,6 +1463,7 @@ def hf(
     devi: str | None = None,
     st: str = "done",
     prio: str = "med",
+    sid: str | None = None,  # P2 #7: for escalation observability
     # Backward compat — deprecated alias for tref
     task: str | None = None,
     # get params
@@ -1504,6 +1505,7 @@ def hf(
             devi=devi,
             st=st,
             prio=prio,
+            sid=sid,  # P2 #7: propagate sid for escalation observes
         )
         return json.dumps(result, ensure_ascii=False)
 

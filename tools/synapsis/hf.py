@@ -464,6 +464,7 @@ def hf_new(
     devi: str | None = None,
     st: str = "done",
     prio: str = "med",
+    sid: str | None = None,  # P2 #7: thread sid for escalation observability
 ) -> dict[str, Any]:
     """Create a new handoff: generate ref, write file, index in DB, parse wiki.
 
@@ -480,6 +481,7 @@ def hf_new(
         devi: Optional deviation block.
         st: Status (done, fail, hold, kill).
         prio: Priority (low, med, high, crit).
+        sid: Optional session id (P2 #7) for escalation logging and observes.
 
     Returns:
         Dict with ``ref``, ``file`` (relative path), ``wiki`` (or None), ``ts``.
@@ -576,9 +578,9 @@ def hf_new(
                 title=esc_title,
                 body=esc_error,
                 tref=tref,
+                sid=sid,
                 error=esc_error,
                 analysis=esc_analysis,
-                # sid not threaded to hf_new yet
             )
         except Exception as exc:  # noqa: BLE001
             logger.warning(f"Auto-escalation on handoff failed (non-fatal): {exc}")

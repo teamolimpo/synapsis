@@ -89,12 +89,12 @@ This plan is based on:
    - Tests still pass; demo call with structured fields succeeds.
    - (Further polish: more auto-context from recent hf, better defaults in call sites can be follow-up.)
 
-7. **sid Propagation & Observability**
-   - `report_problem` accepts `sid`, but the only auto path (blk) never passes it.
-   - For `hf+notify`, the warning is only in logs; it should also create a loud session observation when possible.
-   - **Actions**:
-     - Pass `sid` from the MCP server context wherever feasible.
-     - Enhance `_try_log_internal` / notify path to create session observes when sid is known.
+7. **sid Propagation & Observability** — **IN PROGRESS (core done)**
+   - Added `sid` param to `hf_new` and to the `hf()` MCP tool; threaded through to the escalation call in handoff path.
+   - Enhanced `_try_log_internal`: now logs loud session observe (type=system, entities) if sid present, even without tref (for sid-only cases). Task event still requires tref.
+   - Blk and consolidate paths already propagate sid (from prior points).
+   - hf+notify will now produce the system observe when sid provided by caller.
+   - Main propagation gap for handoffs closed. Further threading (e.g. in more internal paths) can follow.
 
 ### P3 — Lower Priority / Polish
 8. **Documentation & Examples**
