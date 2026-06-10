@@ -25,16 +25,21 @@ This rule formalizes the explicit lesson from hf-8565 (T-GH-001 reflection): dir
 **PRs are opened on the branch, not after landing on main.**
 
 ## Branch Protection (target repo settings)
-Where configurable (GitHub repo settings → Branches → Branch protection rules for `main`):
-- Require pull request reviews before merging (N approvals; require approval of the most recent push; code owners optional but recommended).
-- Require status checks before merging (prefer "strict" / require branches to be up-to-date).
-- Require linear history (enforces squash/rebase; aids clean reverts).
-- Do not allow force pushes.
-- Do not allow deletions.
-- Restrict who can push (and "Do not allow bypassing the above settings" for admins where possible).
-- Additional: signed commits, conversation resolution, deployment gates.
+We use a **Repository Ruleset** named `main-branch-discipline` (Settings → Rules → Rulesets) targeting `~DEFAULT_BRANCH`. This is more modern and flexible than classic branch protection rules.
 
-If full protection cannot be enabled immediately (permissions, free-tier limits), the documented cultural rule + handoff call-outs for deviations still apply. Use the T-GH-001 escalation mechanisms for process "devi" or "blk".
+Current active rules (as of initial setup on `chore/git-workflow-discipline`):
+- Require a pull request before merging
+  - Required approving reviews: 0 (solo "act as team" mode)
+  - Require approval of the most recent reviewable push: enabled
+  - Dismiss stale pull request approvals when new commits are pushed: enabled
+- Require linear history: enabled
+- Block force pushes: enabled
+- Block branch deletions: enabled
+
+**High priority pending item (T-CI-001)**: "Require status checks to pass before merging" (with "Require branches to be up to date before merging" = strict) is **temporarily disabled**.  
+Reason: no CI workflows exist yet in the repository. Once a minimal CI workflow is added (even a simple one that runs on PRs), we must immediately re-enable this rule and populate it with the real job names. This is tracked as high-priority task T-CI-001.
+
+If the ruleset cannot be made fully strict immediately, the documented cultural rule + mandatory handoff call-outs for any deviation still apply. Use the T-GH-001 escalation mechanisms (see issue #3) for process "devi" or "blk".
 
 ## Scope
 - Applies to **every** change. No exceptions for "quick", "trivial", "docs only", or "I know what I'm doing".
@@ -58,7 +63,9 @@ Full map, source assessments (Tier 1 per source + Tier 2 per finding), SIFT deta
 - Reference it in handoffs, task logs, and observations for any git-related work.
 - Update AGENTS.md + this file + GROK.md together when patterns evolve (per AGENTS guidance).
 - For significant process decisions or deviations, produce a formal handoff (`/handoff` skill or direct `synapsis__hf`) + task log (evt "hr").
-- Future enhancements (optional): pre-commit/push hooks, CI checks that fail on direct main patterns (rare), or branch naming conventions.
+- **High priority item tracked as T-CI-001**: Add a minimal CI workflow (even a trivial one) and immediately re-enable "Require status checks to pass before merging" (strict) in the `main-branch-discipline` ruleset. Until then the ruleset is intentionally not at full strength on the CI gate.
+
+Future enhancements (optional): pre-commit/push hooks, CI checks that fail on direct main patterns, or branch naming conventions.
 
 **SOP is our guide.** We do not "discuss best practices while pushing to main." We follow the flow, call out deviations explicitly when they happen, and improve the process visibly.
 
