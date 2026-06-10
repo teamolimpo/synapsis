@@ -579,6 +579,7 @@ def hf_new(
                 body=esc_error,
                 tref=tref,
                 sid=sid,
+                context=f"Handoff file: {file_path_rel}",
                 error=esc_error,
                 analysis=esc_analysis,
             )

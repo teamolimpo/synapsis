@@ -112,10 +112,13 @@ This plan is based on:
    - Tests still pass; changes committed.
    - (Further: could add time-based dedup window or gh search for open issues with same tref; out of scope for this point.)
 
-10. **Broader Integration Points**
-    - Wire escalation from other core paths (knowledge indexing failures, consolidate pain, store errors, etc.).
-    - Ensure sub-agents / spawned agents (via spawn_subagent etc.) can easily escalate.
-    - Link escalation issues back to tasks/handoffs more visibly (already partially done via events).
+10. **Broader Integration Points** — **DONE (core wires)**
+    - Wired in chunk_indexer.py: FTS5 search, embedding search, entity search errors now call _maybe_escalate_knowledge_failure → report_problem (with error + analysis).
+    - Wired in store.py: auto_consolidate hard failure path now escalates directly (in addition to consolidate tool hook).
+    - Enhanced hf escalation (P0#1 + this): now passes handoff file in `context` for better linking to handoff.
+    - Sub-agents: can easily escalate via direct `from tools.synapsis.report import report_problem(...)` (importable in any spawned agent runtime); sid/tref/context supported. Documented in previous P2#8 examples and AGENTS/GROK.
+    - Linking: issues carry tref/sid/handoff file in body/context; back-logged to task events + system observes (when sid); events include gh=URL.
+    - No breakage to existing (tests green). Further paths (e.g. more store critical ops, knowledge rebuild top-level) can be added incrementally.
 
 ## Suggested Phasing (for work on this or follow-up branches)
 - **Phase 1 (Core contract)**: Handoff wiring (#1) + improve blk trigger (#2) + explicit project config section (#3) + basic tests (#4).

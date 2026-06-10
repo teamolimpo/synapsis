@@ -847,6 +847,7 @@ def search_chunks(
 
     except sqlite3.Error as e:
         logger.error(f"FTS5 search error: {e}")
+        _maybe_escalate_knowledge_failure("FTS5 search", e)
         return []
 
 
@@ -965,6 +966,7 @@ def _embedding_search(
 
     except sqlite3.Error as e:
         logger.error(f"Embedding search error: {e}")
+        _maybe_escalate_knowledge_failure("Embedding search", e)
         return []
 
 
@@ -1067,6 +1069,7 @@ def entity_search(
     except sqlite3.Error as e:
         conn.close()
         logger.error(f"Entity search error: {e}")
+        _maybe_escalate_knowledge_failure("Entity search", e)
         return []
 
 
@@ -1143,6 +1146,34 @@ def hybrid_search(
             break
 
     return final
+
+
+# ---------------------------------------------------------------------------
+# Escalation helper (P2 #10 broader integration)
+# ---------------------------------------------------------------------------
+
+
+def _maybe_escalate_knowledge_failure(component: str, exc: Exception) -> None:
+    """Best-effort: escalate knowledge indexing/search failures so they are not silent.
+
+    Called from FTS5/embedding/entity search error paths.
+    Agents in context can pass tref/sid via direct report_problem calls.
+    """
+    try:
+        from tools.synapsis.report import report_problem
+
+        report_problem(
+            title=f"Knowledge {component} failure",
+            body=f"{component} failed: {exc}",
+            error=str(exc),
+            analysis=(
+                f"Investigate {component} in chunk_indexer / vector_indexer / "
+                "entity_extractor. Check DB integrity, embeddings, config.include, or permissions."
+            ),
+        )
+    except Exception:
+        # Never let escalation break the indexer or search.
+        pass
 
 
 # ---------------------------------------------------------------------------
