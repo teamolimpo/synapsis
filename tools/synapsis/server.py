@@ -1476,9 +1476,9 @@ def hf(
     if tref is None and task is not None:
         tref = task
     store = _get_store()
-    from tools.common.paths import project_root
+    from tools.common.paths import workspace_root
 
-    proj_root = project_root()
+    proj_root = workspace_root()
 
     if act in ("n", "new"):
         # Validate required params
