@@ -132,6 +132,11 @@ def workspace_root() -> Path:
         ws = _discover_workspace_root()
         if ws is not None:
             return ws
+        # In plugin mode, if no project marker found in ancestor tree, fall back to the
+        # immediate current working directory as the workspace. This prevents accidentally
+        # writing DB/Library/handoffs into the plugin installation dir for bare test dirs
+        # or projects without .git/.grok/pyproject.toml.
+        return Path.cwd().resolve()
     return project_root()
 
 
