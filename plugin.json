@@ -1,0 +1,33 @@
+{
+  "name": "synapsis",
+  "version": "0.1.0",
+  "description": "Unified durable memory MCP for Grok Build: sessions, tasks, structured handoffs (hf), unified search, compression, and hygiene. Ships with /synapsis and /handoff skills for practical usage instead of raw tool calls.",
+  "author": {
+    "name": "tensor-mill"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/teamolimpo/synapsis",
+  "keywords": [
+    "memory",
+    "mcp",
+    "handoff",
+    "tasks",
+    "sessions",
+    "grok-build",
+    "agent-memory",
+    "synapsis",
+    "knowledge"
+  ],
+  "skills": ".grok/skills",
+  "interface": {
+    "displayName": "Synapsis",
+    "shortDescription": "Durable agent memory: tasks, handoffs, search across timeline + knowledge, auto compression.",
+    "longDescription": "Synapsis is the memory layer for agentic workflows. Provides MCP tools (synapsis__*) and high-level skills (/synapsis, /handoff) for session management, task tracking, mandatory handoff protocol, FTS5+search, and end-of-work hygiene (consolidate + stats). Works great with Grok Build subagents and multi-agent setups.",
+    "category": "Agent Infrastructure",
+    "capabilities": [
+      "Memory",
+      "Coordination",
+      "Search"
+    ]
+  }
+}

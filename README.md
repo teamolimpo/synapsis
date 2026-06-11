@@ -211,6 +211,36 @@ If you extend this, try to keep the "handoff before you return control" spirit a
 
 The handoff protocol and memory discipline are documented in `GROK.md` and `AGENTS.md`.
 
+## Grok Build Plugin & Marketplace (min install)
+
+You can install synapsis as a first-class Grok Build plugin. This gives you:
+
+- The `synapsis` MCP server (tools: `synapsis__search`, `synapsis__session`, `synapsis__task`, `synapsis__hf`, `synapsis__consolidate`, `synapsis__admin`, `d_set`/`d_get`).
+- The project skills `/synapsis` and `/handoff` (the recommended ergonomic interface — recall-first, handoff protocol, token-efficient usage, closing hygiene).
+
+### Install
+
+```bash
+# Direct (works for any git repo that is a valid plugin)
+grok plugin install teamolimpo/synapsis --trust
+
+# Or via a marketplace source
+grok plugin marketplace add teamolimpo/synapsis
+grok plugin install synapsis --trust
+```
+
+Then:
+
+- `/mcps` → you should see **synapsis**
+- `/skills` or `/` → `/synapsis` and `/handoff` appear
+- `/plugins` → details and enable/disable
+
+The DB (`.synapsis/synapsis.db`) and optional `Library/` for durable handoffs are resolved relative to *your current project/workspace* (plugin-aware paths), not inside the installed plugin.
+
+For full synapsis discipline (AGENTS.md, rules, vault, etc.) you still copy/adopt the relevant pieces from this repo into your own project, or keep using the public clone as your "memory environment".
+
+See also: the `/synapsis` and `/handoff` skills, `uv run python -m tools.synapsis --help`, and `grok plugin validate` / `grok plugin details synapsis`.
+
 ## License
 
 MIT (same as the original extraction source).

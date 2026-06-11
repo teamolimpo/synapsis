@@ -49,6 +49,51 @@ def project_root() -> Path:
     return _PROJECT_ROOT
 
 
+# ---------------------------------------------------------------------------
+# Plugin / library mode support (minimo for marketplace distribution)
+# When synapsis runs as a Grok plugin (GROK_PLUGIN_ROOT in env or path under
+# ~/.grok/plugins or marketplace-cache), user data (DB, Library) must resolve
+# relative to the *consumer's* workspace (CWD), not the plugin checkout.
+# project_root() is kept unchanged: it always reports the synapsis package root.
+# ---------------------------------------------------------------------------
+
+_PLUGIN_MARKERS = (".grok/plugins", "marketplace-cache", ".claude/plugins")
+
+
+def _is_plugin_context() -> bool:
+    """Detect if the synapsis code is being executed from a Grok plugin install."""
+    if os.environ.get("GROK_PLUGIN_ROOT") or os.environ.get("GROK_PLUGIN_DATA"):
+        return True
+    mod = str(Path(__file__).resolve())
+    return any(marker in mod for marker in _PLUGIN_MARKERS)
+
+
+def _discover_workspace_root() -> Path | None:
+    """Walk upward from CWD for a consumer project root (git, .grok, pyproject...).
+    Returns None if nothing sensible is found (fallback will apply).
+    """
+    start = Path.cwd().resolve()
+    for p in [start] + list(start.parents):
+        if (p / ".git").exists() or (p / ".grok").exists() or (p / "pyproject.toml").exists():
+            return p
+    return None
+
+
+def workspace_root() -> Path:
+    """Active workspace for user data (DB, Library, knowledge, etc.).
+
+    In plugin context: prefer discovery from the current working directory
+    (i.e. the project that installed/uses the synapsis plugin).
+    Otherwise (or if discovery fails): fall back to the classic module-based
+    project_root() so development inside the synapsis clone continues to work.
+    """
+    if _is_plugin_context():
+        ws = _discover_workspace_root()
+        if ws is not None:
+            return ws
+    return project_root()
+
+
 def resolve_relative(*parts: str) -> Path:
     """Join *parts* with :func:`project_root` — does **not** resolve symlinks.
 
@@ -86,8 +131,10 @@ def resolve_absolute(*parts: str) -> Path:
 def resolve_synapsis_db() -> Path:
     """Return the primary Synapsis DB path for store + knowledge chunks.
 
-    Honors the SYNAPSIS_DB_PATH env var (absolute, or relative to project root).
-    Default: .synapsis/synapsis.db (resolved via project_root + absolute rules).
+    Honors the SYNAPSIS_DB_PATH env var (absolute, or relative to workspace).
+    Default: .synapsis/synapsis.db resolved from workspace_root() (plugin-aware:
+    uses the consumer project CWD when synapsis is loaded from a Grok plugin;
+    falls back to classic project_root for development inside the synapsis tree).
 
     This is the single source of truth used by SynapsisStore and by the
     integrated knowledge_base.chunk_indexer (after adaptation). It keeps
@@ -102,8 +149,9 @@ def resolve_synapsis_db() -> Path:
         p = Path(env_path)
         if p.is_absolute():
             return p
-        return resolve_absolute(str(p))
-    return resolve_absolute(".synapsis/synapsis.db")
+        # relative env still resolved against the *active* workspace
+        return workspace_root().joinpath(str(p)).resolve()
+    return workspace_root().joinpath(".synapsis/synapsis.db").resolve()
 
 
 def ensure_vault_mounted() -> Path:
@@ -112,6 +160,10 @@ def ensure_vault_mounted() -> Path:
     This is the central safety guard. It prevents code from silently creating
     a *real* directory named Library/ inside the public clone when the external
     symlink is not present.
+
+    In plugin context the check is performed against the *consumer workspace*
+    (so a project that adopts the full synapsis discipline + vault will work
+    even when the memory engine is provided by the installed plugin).
 
     Creating a real Library/ would be:
     - gitignored (so "invisible" in status)
@@ -128,7 +180,7 @@ def ensure_vault_mounted() -> Path:
     Returns:
         Absolute resolved path to the vault root (after following the symlink).
     """
-    lib = resolve_relative("Library")
+    lib = workspace_root().joinpath("Library")  # plugin-aware (was resolve_relative)
 
     if not lib.exists():
         raise RuntimeError(
@@ -151,4 +203,5 @@ def ensure_vault_mounted() -> Path:
         )
 
     # Success: return the real (resolved) vault path for I/O.
-    return resolve_absolute("Library")
+    # Use workspace_root so that in plugin mode we return the consumer's Library.
+    return workspace_root().joinpath("Library").resolve()
