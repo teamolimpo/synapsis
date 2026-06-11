@@ -62,6 +62,82 @@ def project_root() -> Path:
 # relative to the *consumer's* workspace (CWD), not the plugin checkout.
 # project_root() is kept unchanged: it always reports the synapsis package root.
 # ---------------------------------------------------------------------------
+_PLUGIN_MARKERS = (".grok/plugins", "installed-plugins", "marketplace-cache", ".claude/plugins", "synapsis-")
+
+
+def _is_plugin_context() -> bool:
+    """Detect if the synapsis code is being executed from a Grok plugin install."""
+    # Strong signal: Grok sets these when launching MCPs / hooks from plugins
+    if os.environ.get("GROK_PLUGIN_ROOT") or os.environ.get("GROK_PLUGIN_DATA"):
+        return True
+    mod = str(Path(__file__).resolve())
+    if any(marker in mod for marker in _PLUGIN_MARKERS):
+        return True
+    # Extra safety for installed plugin layouts: if the module lives under ~/.grok and contains "synapsis"
+    # treat it as plugin context so we always prefer consumer CWD for data.
+    if ".grok" in mod and "synapsis" in mod.lower():
+        return True
+    return False
+
+
+def _is_synapsis_package(p: Path) -> bool:
+    """Return True if *p* looks like the root of the synapsis package/plugin itself.
+
+    Used to prevent workspace_root() from accidentally selecting the plugin
+    installation directory (which ships with .grok/ + pyproject.toml + plugin.json)
+    as the consumer workspace for .synapsis/ and Library/.
+    """
+    if (p / "plugin.json").exists():
+        return True
+    if (p / "tools" / "synapsis" / "server.py").exists():
+        return True
+    pp = p / "pyproject.toml"
+    if pp.exists():
+        try:
+            txt = pp.read_text(encoding="utf-8", errors="ignore")
+            if 'name = "synapsis"' in txt or "name = 'synapsis'" in txt:
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def _discover_workspace_root(start: Path | None = None) -> Path | None:
+    """Walk upward from the given start (or CWD) for a consumer project root.
+
+    Looks for .git, .grok directory, or pyproject.toml.
+    Explicitly skips directories that are the synapsis package/plugin itself.
+    """
+    if start is None:
+        start = Path.cwd().resolve()
+    else:
+        start = start.resolve()
+    for p in [start] + list(start.parents):
+        if (p / ".git").exists() or (p / ".grok").exists() or (p / "pyproject.toml").exists():
+            if _is_synapsis_package(p):
+                continue
+            return p
+    return None
+
+
+def workspace_root() -> Path:
+    """Active workspace for user data (DB, Library, knowledge, etc.).
+
+    In plugin context: prefer discovery from the current working directory
+    (i.e. the project that installed/uses the synapsis plugin).
+    Otherwise (or if discovery fails): fall back to the classic module-based
+    project_root() so development inside the synapsis clone continues to work.
+    """
+    if _is_plugin_context():
+        ws = _discover_workspace_root()
+        if ws is not None:
+            return ws
+    return project_root()
+
+
+def resolve_relative(*parts: str) -> Path:
+    """Join *parts* with :func:`project_root` — does **not** resolve symlinks.
+>>>>>>> d179104 (feat: minimal Grok Build plugin support for marketplace)
 
 _PLUGIN_MARKERS = (".grok/plugins", "installed-plugins", "marketplace-cache", ".claude/plugins", "synapsis-")
 
