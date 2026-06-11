@@ -57,11 +57,12 @@ def project_root() -> Path:
 # project_root() is kept unchanged: it always reports the synapsis package root.
 # ---------------------------------------------------------------------------
 
-_PLUGIN_MARKERS = (".grok/plugins", "marketplace-cache", ".claude/plugins")
+_PLUGIN_MARKERS = (".grok/plugins", "installed-plugins", "marketplace-cache", ".claude/plugins")
 
 
 def _is_plugin_context() -> bool:
     """Detect if the synapsis code is being executed from a Grok plugin install."""
+    # Strong signal: Grok sets these when launching MCPs / hooks from plugins
     if os.environ.get("GROK_PLUGIN_ROOT") or os.environ.get("GROK_PLUGIN_DATA"):
         return True
     mod = str(Path(__file__).resolve())
