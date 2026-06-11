@@ -29,6 +29,8 @@ from typing import Any
 import yaml
 from loguru import logger
 
+from tools.common.paths import ensure_vault_mounted
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -158,6 +160,11 @@ def write_handoff_file(
     Returns:
         Relative path (e.g. ``Library/Handoff/2026/06/03/2026-06-03_1430_....md``).
     """
+    # Critical safety guard (see paths.py)
+    # Prevents creating a real local Library/ dir inside the public clone
+    # when the external vault symlink is not mounted.
+    ensure_vault_mounted()
+
     now = datetime.now()
     year_str = now.strftime("%Y")
     month_str = now.strftime("%m")
@@ -314,6 +321,9 @@ def write_wiki_page(
     Returns:
         Relative wiki page path, or ``None`` on failure.
     """
+    # Critical safety guard (see paths.py + ensure_vault_mounted)
+    ensure_vault_mounted()
+
     wiki_rel = wiki_data.get("path", "")
     if not wiki_rel:
         return None
@@ -369,6 +379,7 @@ def write_wiki_page(
 
 def _update_wiki_index(project_root: Path, wiki_data: dict, wiki_path: Path) -> None:
     """Append entry to ``Library/Wiki/index.md`` if not already present."""
+    ensure_vault_mounted()
     index_path = project_root / "Library" / "Wiki" / "index.md"
     if not index_path.exists():
         return
@@ -428,6 +439,7 @@ def _update_wiki_index(project_root: Path, wiki_data: dict, wiki_path: Path) -> 
 
 def _update_wiki_log(project_root: Path, wiki_data: dict, wiki_path: Path) -> None:
     """Append entry to ``Library/Wiki/log.md``."""
+    ensure_vault_mounted()
     log_path = project_root / "Library" / "Wiki" / "log.md"
     if not log_path.exists():
         return

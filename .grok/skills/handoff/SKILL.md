@@ -5,6 +5,12 @@ description: >
   Always performs recall first, produces a dated Library/Handoff file, logs the handoff_ref on the related task(s), and records an observation.
   Use when the user says "handoff", "hand off", "/handoff", or at the end of any non-trivial piece of work before returning control.
 when-to-use: "Use for mandatory structured handoffs in this synapsis-memory project. Trigger on 'handoff', 'produce handoff', 'before returning control', or end of sub-work."
+
+**Important**: Before creating a handoff, ensure your private vault is mounted with the external symlink (Library -> ~/synapsis-vault). The simplest commands are:
+  bash scripts/vault-mount.sh
+or
+  synapsis vault mount
+The guard (ensure_vault_mounted) will give you this exact instruction if you forget.
 argument-hint: "<title> [tref:T-XXX] [type:handoff|decision|research] [body:... or will prompt]"
 ---
 

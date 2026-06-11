@@ -8,15 +8,21 @@ low-latency locale per il DB operativo).
 * :func:`project_root` — radice del repository (via ``Path(__file__)`` resolution)
 * :func:`resolve_relative` — join con ``project_root`` **senza** risolvere symlink
 * :func:`resolve_absolute` — join con ``project_root`` **con** risoluzione symlink
+* :func:`ensure_vault_mounted` — **safety guard** (chiama prima di scrivere in Library/)
 
 Usage::
 
-    from tools.common.paths import project_root, resolve_relative, resolve_absolute
+    from tools.common.paths import (
+        project_root, resolve_relative, resolve_absolute, ensure_vault_mounted
+    )
 
-    root = project_root()                    # e.g. /path/to/synapsis
-    rel  = resolve_relative("Library")       # .../synapsis/Library (symlink preserved)
-    abs  = resolve_absolute("Library")       # .../real-vault (symlinks resolved for I/O)
+    root = project_root()
+    rel  = resolve_relative("Library")       # lexical (symlink preserved)
+    abs  = resolve_absolute("Library")       # real vault path
     db   = resolve_absolute(".synapsis/synapsis.db")
+
+    vault = ensure_vault_mounted()           # raises clear error with the exact
+                                             # "comando semplicissimo" if not ready
 """
 
 from __future__ import annotations
@@ -98,3 +104,51 @@ def resolve_synapsis_db() -> Path:
             return p
         return resolve_absolute(str(p))
     return resolve_absolute(".synapsis/synapsis.db")
+
+
+def ensure_vault_mounted() -> Path:
+    """Ensure that Library/ is mounted (symlink or valid dir) to the private vault.
+
+    This is the central safety guard. It prevents code from silently creating
+    a *real* directory named Library/ inside the public clone when the external
+    symlink is not present.
+
+    Creating a real Library/ would be:
+    - gitignored (so "invisible" in status)
+    - but pollute the public working tree
+    - block future `ln -s` (you'd have to rm -rf first)
+    - cause all handoffs/wiki to be written to a local-only location instead
+      of the shared private vault → data loss for the team.
+
+    Call this **before any write** that expects durable private storage
+    (handoff files, wiki contributions, etc.).
+
+    The error message tells the user the exact "comando semplicissimo" to run.
+
+    Returns:
+        Absolute resolved path to the vault root (after following the symlink).
+    """
+    lib = resolve_relative("Library")
+
+    if not lib.exists():
+        raise RuntimeError(
+            "VAULT NOT MOUNTED: Library/ does not exist.\n\n"
+            "To be subito ready with your private work tool (full handoffs, "
+            "private knowledge, projects/, etc.):\n\n"
+            "  1. Clone the private vault (once):\n"
+            "       git clone https://github.com/teamolimpo/synapsis-vault.git ~/synapsis-vault\n\n"
+            "  2. Inside the public clone, run ONE of the following simple commands:\n"
+            "       synapsis vault mount\n"
+            "       bash scripts/vault-mount.sh\n\n"
+            "This creates the external symlink (Library -> your vault) and prepares .synapsis/.\n"
+            "After that, /handoff and private search will work durably."
+        )
+
+    if lib.is_file():
+        raise RuntimeError(
+            f"Library exists but is a plain file instead of a directory or symlink: {lib}\n"
+            "Remove the file and re-run the mount command."
+        )
+
+    # Success: return the real (resolved) vault path for I/O.
+    return resolve_absolute("Library")

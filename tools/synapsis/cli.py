@@ -32,7 +32,7 @@ from tools.common.config import (
     remove_knowledge_exclude,
     remove_knowledge_include,
 )
-from tools.common.paths import resolve_relative
+from tools.common.paths import resolve_relative, ensure_vault_mounted
 
 from tools.synapsis.report import report_problem
 
@@ -406,6 +406,92 @@ def unexclude(
 
 
 app.add_typer(knowledge_app, name="knowledge")
+
+
+# ---------------------------------------------------------------------------
+# Vault mount automation (P0 from review + user request for "comando semplicissimo")
+# 5 ultra-simple bash scripts also live in scripts/ for zero-dep "subito ready".
+# ---------------------------------------------------------------------------
+
+
+vault_app = typer.Typer(
+    name="vault",
+    help="Manage the external private vault symlink (Library/ -> ~/synapsis-vault).",
+    no_args_is_help=True,
+)
+
+
+@vault_app.command()
+def mount(
+    path: str | None = typer.Option(
+        None, "--path", "-p", help="Path to the private vault clone (default: ~/synapsis-vault)"
+    ),
+    force: bool = typer.Option(False, "--force", "-f", help="Overwrite existing symlink if needed"),
+) -> None:
+    """Create (or refresh) the external Library symlink to your private vault.
+
+    This is the Python version of the 'comando semplicissimo'.
+    After running you are immediately ready for durable handoffs and private knowledge.
+    """
+    from pathlib import Path
+    import os
+
+    default = Path.home() / "synapsis-vault"
+    target = Path(path).expanduser() if path else default
+
+    if not target.is_dir():
+        logger.error(f"Vault not found at {target}")
+        logger.error("Clone it first: git clone https://github.com/teamolimpo/synapsis-vault.git ~/synapsis-vault")
+        sys.exit(1)
+
+    lib = Path("Library")
+    if lib.exists() and not lib.is_symlink():
+        if not force:
+            logger.error("Library exists and is not a symlink (would shadow the mount).")
+            logger.error("Remove it first (rm -rf Library) or use --force.")
+            sys.exit(1)
+        else:
+            lib.unlink()
+
+    # Create / refresh the symlink (external)
+    try:
+        if lib.is_symlink() or lib.exists():
+            lib.unlink()
+        os.symlink(target, lib)
+    except Exception as e:
+        logger.error(f"Failed to create symlink: {e}")
+        sys.exit(1)
+
+    # Prepare hot runtime dir
+    Path(".synapsis").mkdir(exist_ok=True)
+
+    print(f"✅ Library symlinked to {target} (external)")
+    print("✅ .synapsis/ prepared")
+    print("\nYou are now subito ready.")
+    print("Try: synapsis stats   or   bash scripts/vault-check.sh")
+
+    # Verify with the guard (will succeed now)
+    try:
+        vault = ensure_vault_mounted()
+        print(f"Guard happy. Real vault path: {vault}")
+    except Exception as e:
+        logger.warning(f"Guard check after mount: {e}")
+
+
+@vault_app.command("check")
+def vault_check() -> None:
+    """Quick check that the vault is properly mounted."""
+    from pathlib import Path
+    try:
+        vault = ensure_vault_mounted()
+        print(f"✅ Vault mounted: {vault}")
+        print("   Library ->", Path("Library").resolve())
+    except RuntimeError as e:
+        print(str(e))
+        sys.exit(1)
+
+
+app.add_typer(vault_app, name="vault")
 
 
 # ---------------------------------------------------------------------------

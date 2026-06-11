@@ -17,7 +17,9 @@ Synapsis solves that with:
 - **Handoff protocol** (`synapsis__hf`) — every significant piece of work produces a structured, searchable handoff file (with optional Wiki contribution).
 - **Unified search** across everything (observations, tasks, handoffs, knowledge/wiki chunks) with FTS5 + optional hybrid/embedding modes.
 - **Knowledge / Wiki** layer (chunks + search) that handoffs can feed automatically.
-- All backed by a single SQLite DB (`.synapsis/synapsis.db` by default — local, low-latency operational store) + handoff files and curated knowledge under `Library/`. The DB path is overridable via `SYNAPSIS_DB_PATH`. Library can still be symlinked to a vault for higher-latency curated/static content.
+- All backed by a single SQLite DB (`.synapsis/synapsis.db` by default — local, low-latency operational store) + handoff files and curated knowledge under `Library/`. The DB path is overridable via `SYNAPSIS_DB_PATH`.
+
+**Library/** is the mount point for the **private vault** (teamolimpo/synapsis-vault). It is required for full durable handoffs and private knowledge (tensor-mill members). External contributors only cloning the public repo will not have it. See the "Tensor-mill / full memory setup" section below.
 
 Plus a high-quality **LLM client** (`tools/llm`) that lets you call Grok (including multi-agent variants), Gemini, OpenRouter, etc. from your own Python code, skills, or additional MCPs.
 
@@ -39,6 +41,32 @@ Grok will automatically pick up the project-scoped MCP from `.grok/config.toml`.
 In the TUI:
 - Type `/mcps` (or use the MCP modal) — you should see **synapsis**.
 - The tools will be namespaced: `synapsis__search`, `synapsis__session`, `synapsis__task`, `synapsis__hf`, `synapsis__d_set`, `synapsis__d_get`, etc.
+
+## Tensor-mill / full memory setup (private vault)
+
+The public repo is the **environment** (tools, rules, skills, public SOPs).
+
+The private content (all handoffs, Wiki, projects, assets, private SOPs) lives in a separate repo (`teamolimpo/synapsis-vault`) that you symlink as `Library/`.
+
+**Comando semplicissimo** (after cloning both repos):
+
+```bash
+cd synapsis          # the public clone
+uv sync
+
+# One of these two (both do the external symlink + prepare .synapsis/)
+bash scripts/vault-mount.sh
+# or the integrated command:
+synapsis vault mount
+```
+
+You are now **subito ready** with your full work tool (durable `/handoff`, private search, projects/, etc.).
+
+- `bash scripts/vault-check.sh` / `synapsis vault check`
+- `bash scripts/vault-doctor.sh` for diagnostics
+- `bash scripts/vault-unmount.sh` to remove the symlink safely
+
+See also `scripts/` for the other helpers and the plan in `plans/vault-setup-automation-001.md`.
 
 ## Recommended Integration with Grok Build (2026+)
 
@@ -129,7 +157,7 @@ exactly as before.
   - `synapsis.db` (plus WAL/SHM) — sessions, observations, tasks, entities, FTS5, knowledge chunks, etc.
   - `config.yaml` — optional local operational configuration for the whole synapsis instance (e.g. what to index under `knowledge.include` / `knowledge.exclude`).
   Fast local I/O by design. Fully gitignored.
-- **`Library/`**: intended for higher-latency or curated content (Handoff files, Wiki contributions). This is the part that can be symlinked to a personal vault, Obsidian, NFS, etc. without hurting the hot path. Gitignored (with `.gitkeep` markers).
+- **`Library/`**: the mount point for the private vault (teamolimpo/synapsis-vault). Contains all handoffs, Wiki, projects/, assets, and private SOPs. Required for tensor-mill members. Created/maintained with the simple `vault-mount` commands above. Gitignored in the public repo (the symlink entry itself is never committed).
 
 The split exists so that the very active DB (frequent small writes + searches) stays on fast local storage, while you can still keep handoffs and curated knowledge in a separate, possibly remote/slower vault.
 

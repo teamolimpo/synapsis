@@ -15,8 +15,8 @@ Synapsis is the unified durable memory layer for this project:
 
 All data lives in:
 - `.synapsis/synapsis.db` (hot operational SQLite + FTS5 — gitignored)
-- `Library/Handoff/YYYY/MM/DD/` (structured handoff .md files)
-- `Library/Wiki/` (curated contributions extracted from handoffs)
+- `Library/Handoff/YYYY/MM/DD/` (structured handoff .md files — inside the private vault via the Library symlink)
+- `Library/Wiki/` (curated contributions extracted from handoffs — private vault)
 
 ## Tool Discovery in Grok Build
 
@@ -256,7 +256,7 @@ Long forms are still accepted (normalized server-side). Update your recurring pa
 - Default agent/owner: "Poros" (override with `agent` or `owner` when it makes sense, e.g. subagent names or "GrokTest" during experiments).
 - Test data may exist under other owners — always use search or explicit filters.
 - Knowledge domain indexing (chunks) may be available via admin(index) but is optional.
-- Library/ is intentionally gitignored so it can be symlinked to a personal vault/Obsidian.
+- Library/ is the mount point for the private vault (required for tensor-mill). It is intentionally not present in public-only clones. Use `synapsis vault mount` or `bash scripts/vault-mount.sh` (the "comando semplicissimo") to become ready. See the public README "Tensor-mill / full memory setup" section.
 
 ## Common Patterns & Examples
 
@@ -307,6 +307,7 @@ use_tool synapsis__admin {"act":"stats"}
 - Always link observations, handoffs, and task events to each other (tref, hpath, entities).
 - Use dry-runs on any mutating or expensive operation.
 - Keep Library/ content high-signal — it is meant to be curated/vaulted.
+- **When editing public artifacts** (README, rules, code in tools/, public SOPs, .grok/ stuff, etc.) while the private vault is mounted: be deliberate. Use narrow `synapsis__search` or do private recall *after* the public change. Do not paste private hpaths, internal project names, or handoff excerpts into public commits, PRs, or comments. The guard and mount commands exist so insiders have full power without accidentally leaking context.
 
 This file (`GROK.md`) is the detailed operational manual. The auto-loaded project rules entry point is `AGENTS.md` (which references this file). Skills in `.grok/skills/` provide the best day-to-day UX. Update AGENTS.md / GROK.md / the skills together when patterns evolve.
 
