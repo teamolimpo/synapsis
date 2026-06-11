@@ -237,6 +237,28 @@ Then:
 
 The DB (`.synapsis/synapsis.db`) and optional `Library/` for durable handoffs are resolved relative to *your current project/workspace* (plugin-aware paths), not inside the installed plugin.
 
+### Dependencies and first run (important)
+
+After `grok plugin install`, Grok checks out the code but does **not** run `uv sync` for you.
+
+The `.mcp.json` uses `uv run --frozen ...`. On the **very first** use of any synapsis tool/MCP after installation, `uv` will automatically create a `.venv` inside the plugin directory and install the dependencies from `uv.lock`. 
+
+This can take 30s–few minutes the first time (network + compilation of some packages). Subsequent launches are fast.
+
+**Make sure `uv` is in your PATH** when you start Grok.
+
+To make the first experience smooth, you can pre-sync manually after install:
+
+```bash
+# Find the actual installed location
+grok plugin details synapsis
+
+# Then sync (example)
+uv --directory /path/that/grok/installed/synapsis sync --frozen
+```
+
+The same `uv --directory ... run synapsis ...` pattern works for the CLI (e.g. `synapsis stats`, `synapsis vault mount`, etc.) when using the plugin from outside a synapsis source tree.
+
 For full synapsis discipline (AGENTS.md, rules, vault, etc.) you still copy/adopt the relevant pieces from this repo into your own project, or keep using the public clone as your "memory environment".
 
 See also: the `/synapsis` and `/handoff` skills, `uv run python -m tools.synapsis --help`, and `grok plugin validate` / `grok plugin details synapsis`.

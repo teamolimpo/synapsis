@@ -6,11 +6,14 @@
         "--directory",
         "${GROK_PLUGIN_ROOT}",
         "run",
+        "--frozen",
         "python",
         "-m",
         "tools.synapsis"
       ],
-      "env": {}
+      "env": {
+        "UV_NO_PROGRESS": "1"
+      }
     }
   }
 }
