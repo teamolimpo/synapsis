@@ -180,21 +180,47 @@ def ensure_vault_mounted() -> Path:
     Returns:
         Absolute resolved path to the vault root (after following the symlink).
     """
-    lib = workspace_root().joinpath("Library")  # plugin-aware (was resolve_relative)
+    ws = workspace_root()
+    lib = ws.joinpath("Library")
+
+    # Heuristic: are we running "inside" the synapsis package itself?
+    # (developing the source or the plugin checkout is the current workspace)
+    # In that case keep the strict "must have proper vault symlink" policy.
+    is_self = (ws == project_root())
 
     if not lib.exists():
-        raise RuntimeError(
-            "VAULT NOT MOUNTED: Library/ does not exist.\n\n"
-            "To be subito ready with your private work tool (full handoffs, "
-            "private knowledge, projects/, etc.):\n\n"
-            "  1. Clone the private vault (once):\n"
-            "       git clone https://github.com/teamolimpo/synapsis-vault.git ~/synapsis-vault\n\n"
-            "  2. Inside the public clone, run ONE of the following simple commands:\n"
-            "       synapsis vault mount\n"
-            "       bash scripts/vault-mount.sh\n\n"
-            "This creates the external symlink (Library -> your vault) and prepares .synapsis/.\n"
-            "After that, /handoff and private search will work durably."
-        )
+        if is_self:
+            # Strict protection only for the canonical synapsis source tree
+            raise RuntimeError(
+                "VAULT NOT MOUNTED: Library/ does not exist.\n\n"
+                "To be subito ready with your private work tool (full handoffs, "
+                "private knowledge, projects/, etc.):\n\n"
+                "  1. Clone the private vault (once):\n"
+                "       git clone https://github.com/teamolimpo/synapsis-vault.git ~/synapsis-vault\n\n"
+                "  2. Inside the public clone, run ONE of the following simple commands:\n"
+                "       synapsis vault mount\n"
+                "       bash scripts/vault-mount.sh\n\n"
+                "This creates the external symlink (Library -> your vault) and prepares .synapsis/.\n"
+                "After that, /handoff and private search will work durably."
+            )
+        else:
+            # Plugin / consumer project usage: auto-create a local Library/
+            # so that handoffs and wiki just work without manual mkdir or vault setup.
+            lib.mkdir(parents=True, exist_ok=True)
+            note = lib / "README.md"
+            if not note.exists():
+                note.write_text(
+                    "# Local Library (auto-created)\n\n"
+                    "This Library/ was created automatically because you are using the\n"
+                    "synapsis plugin in a project that does not have a mounted private vault.\n\n"
+                    "Handoff files and Wiki contributions will be stored locally under this\n"
+                    "directory only (gitignored by default in most setups).\n\n"
+                    "If you later want the full durable/shared vault experience:\n"
+                    "  - Clone your vault\n"
+                    "  - Run the mount commands (synapsis vault mount or the scripts)\n"
+                    "  - Or manually replace this dir with a symlink to the vault.\n\n"
+                    "You can safely delete this directory if you don't want local handoffs.\n"
+                )
 
     if lib.is_file():
         raise RuntimeError(
@@ -202,6 +228,6 @@ def ensure_vault_mounted() -> Path:
             "Remove the file and re-run the mount command."
         )
 
-    # Success: return the real (resolved) vault path for I/O.
-    # Use workspace_root so that in plugin mode we return the consumer's Library.
-    return workspace_root().joinpath("Library").resolve()
+    # Success: return the real (resolved) path for I/O.
+    # In plugin mode this will be the consumer workspace's Library.
+    return lib.resolve()
