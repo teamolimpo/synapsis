@@ -20,6 +20,14 @@ uv run python -m tools.synapsis vacuum
 uv run python -m tools.synapsis hygiene --apply
 uv run python -m tools.synapsis stats --json
 uv run python -m tools.synapsis compress --warm --apply
+
+# Vault mount (the "comando semplicissimo" for private Library/ symlink)
+uv run python -m tools.synapsis vault mount
+uv run python -m tools.synapsis vault check
+
+# Or the zero-dep bash versions in scripts/ (recommended for first use)
+bash scripts/vault-mount.sh
+bash scripts/vault-check.sh
 ```
 
 ## 2. Reindexing Library files (chunk knowledge) — now native

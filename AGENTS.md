@@ -4,6 +4,8 @@ This project uses **synapsis** (the MCP server registered in `.grok/config.toml`
 
 **Core rule**: Use durable structured memory (synapsis) **instead of** stuffing everything into the context window. **Handoff before you return control**.
 
+**Setup note for full power**: Public repo = environment only. For the private vault (Library/ with all handoffs + knowledge) run the simple command once: `bash scripts/vault-mount.sh` or `synapsis vault mount` (see README). The safety guard will give you the command if a handoff is attempted without it.
+
 ## Mandatory Workflow (see GROK.md for full details)
 
 1. **Start / Resume**
@@ -17,7 +19,7 @@ This project uses **synapsis** (the MCP server registered in `.grok/config.toml`
 
 3. **Formal Handoffs (non-negotiable for significant work)**
    - Every subagent, major decision, completed piece, or handoff to another agent **must** produce a `synapsis__hf(act="new", ...)`.
-   - Handoffs are written to `Library/Handoff/YYYY/MM/DD/` as durable .md files (with optional Wiki contribution section).
+   - Handoffs are written to `Library/Handoff/YYYY/MM/DD/` (inside the private vault via the Library symlink). Tensor-mill members must first run the simple mount command (see README). The guard in the code will remind you with the exact command if you forget.
    - Immediately after: `synapsis__task(act="log", tid=..., evt="handoff_ref", hpath=...)`.
 
 4. **Recall**
@@ -76,7 +78,7 @@ Use the project skills instead of raw tool sequences when possible:
 ## References
 
 - Detailed patterns, tool-by-tool guidance, examples, token efficiency rules: **[GROK.md](./GROK.md)**
-- Handoff files + curated knowledge: `Library/`
+- Handoff files + curated knowledge: `Library/` (symlinked private vault — tensor-mill only; see README "Tensor-mill / full memory setup" for the `synapsis vault mount` or `bash scripts/vault-mount.sh` comando semplicissimo)
 - Hot DB: `.synapsis/synapsis.db` (gitignored)
 - Synapsis source: `tools/synapsis/`
 - CLI for maintenance: `uv run python -m tools.synapsis --help`

@@ -46,11 +46,14 @@ Thumbs.db
 *.pem
 *.key
 
-# The actual team memory (never commit the DB or private vault content)
+# Library/ is the mount point for the private vault (teamolimpo/synapsis-vault).
+# It must never be committed in this public repo.
+# New clones have no Library entry at all.
+# Tensor-mill members create the external symlink with the simple commands:
+#   bash scripts/vault-mount.sh
+#   or: synapsis vault mount
 Library/
-!Library/.gitkeep
-!Library/**/.gitkeep
-!Library/System/Poros/.gitignore
+# (no .gitkeep exceptions needed anymore — the vault manages its own content)
 
 # Local low-latency Synapsis runtime memory (SQLite DB + WAL/SHM).
 # This is the hot operational store (.synapsis is deliberately separate from
