@@ -66,7 +66,13 @@ def _is_plugin_context() -> bool:
     if os.environ.get("GROK_PLUGIN_ROOT") or os.environ.get("GROK_PLUGIN_DATA"):
         return True
     mod = str(Path(__file__).resolve())
-    return any(marker in mod for marker in _PLUGIN_MARKERS)
+    if any(marker in mod for marker in _PLUGIN_MARKERS):
+        return True
+    # Extra safety for installed plugin layouts: if the module lives under ~/.grok and contains "synapsis"
+    # treat it as plugin context so we always prefer consumer CWD for data.
+    if ".grok" in mod and "synapsis" in mod.lower():
+        return True
+    return False
 
 
 def _discover_workspace_root() -> Path | None:
