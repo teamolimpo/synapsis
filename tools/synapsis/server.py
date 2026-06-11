@@ -1501,7 +1501,7 @@ def hf(
         # Validate required params
         if not type or not title or not body or not agent:
             return json.dumps(
-                {"error": "'type', 'title', 'body', e 'agent' sono obbligatori per act=new."}
+                {"error": "'type', 'title', 'body', and 'agent' are required for act=new."}
             )
 
         if len(title) > 60:
