@@ -410,6 +410,7 @@ def ensure_vault_mounted() -> Path:
             # Strict protection only for the canonical synapsis source tree
             raise RuntimeError(
                 "VAULT NOT MOUNTED: Library/ does not exist.\n\n"
+<<<<<<< HEAD
                 "To quickly set up your private work tool (full handoffs, "
                 "private knowledge, projects/, etc.):\n\n"
                 "  1. Clone the private vault (once):\n"
