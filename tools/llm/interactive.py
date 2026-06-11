@@ -2,13 +2,14 @@
 Modalita' interattiva del tool llm.
 
 Presenta un menu testuale che guida l'utente nella scelta di:
-- Un prompt template da Team/Prompts/ oppure testo libero
+- Un prompt template da una directory esplicita (--prompts-dir) oppure testo libero
 - File di input (opzionale, per batch)
 - Provider e modello
 - Salvataggio del risultato
 
-Il discovery dei prompt avviene scansionando Team/Prompts/**/*.md
-e leggendo il frontmatter YAML (campi 'title' e 'description').
+Il discovery dei prompt è **opzionale** e richiede che l'utente specifichi
+esplicitamente --prompts-dir (es. Library/prompts).
+Nessun path hardcoded nel tool.
 """
 
 from __future__ import annotations
@@ -65,7 +66,7 @@ def _parse_frontmatter(text: str) -> dict[str, str]:
     return result
 
 
-def discover_prompts(prompts_dir: Path) -> list[dict[str, str]]:
+def discover_prompts(prompts_dir: Path | None) -> list[dict[str, str]]:
     """
     Scansiona la directory dei prompt e restituisce i template disponibili.
 
@@ -73,18 +74,21 @@ def discover_prompts(prompts_dir: Path) -> list[dict[str, str]]:
     'title' e 'description'. Se mancano usa il percorso relativo come titolo.
 
     Args:
-        prompts_dir: Directory radice dove cercare i file .md
+        prompts_dir: Directory radice dove cercare i file .md (None = nessun discovery)
 
     Returns:
         Lista di dict con chiavi: 'path', 'title', 'description', 'label'
         Ordinata per label (percorso relativo senza estensione)
     """
-    if not prompts_dir.is_dir():
-        logger.debug(f"Directory prompt non trovata: {prompts_dir}")
+    if prompts_dir is None or not prompts_dir.is_dir():
+        if prompts_dir is not None:
+            logger.debug(f"Directory prompt non trovata o non valida: {prompts_dir}")
         return []
 
     results: list[dict[str, str]] = []
     for md_file in sorted(prompts_dir.glob("**/*.md")):
+        if md_file.name.startswith("_"):
+            continue  # skip indices, conventions, etc.
         try:
             text = md_file.read_text(encoding="utf-8")
         except Exception as exc:
@@ -167,7 +171,7 @@ def run_interactive(
     providers_map: dict[str, type],
     get_api_key_fn: callable[[str], str],
     default_provider: str,
-    prompts_dir: Path,
+    prompts_dir: Path | None = None,
     web_search: bool = False,
 ) -> int:
     """
@@ -181,7 +185,8 @@ def run_interactive(
         providers_map: Dizionario nome -> classe provider (es. PROVIDERS)
         get_api_key_fn: Funzione che data una stringa provider ritorna la API key
         default_provider: Provider selezionato di default
-        prompts_dir: Directory radice per la discovery dei prompt
+        prompts_dir: Directory radice per la discovery dei prompt (None = solo testo libero,
+                     nessun default hardcoded; usa --prompts-dir per abilitare)
         web_search: Se True abilita la ricerca web nella sessione chat (solo Grok)
 
     Returns:
@@ -189,16 +194,27 @@ def run_interactive(
     """
     print("\n=== LLM — Team Olimpo ===\n")
 
-    # --- Discovery prompt ---
+    # --- Discovery prompt (solo se --prompts-dir esplicitamente fornito) ---
     prompt_templates = discover_prompts(prompts_dir)
 
+    if not prompt_templates:
+        if prompts_dir:
+            print(f"[info] Nessun template trovato in {prompts_dir}")
+        else:
+            print("[info] Modalità interattiva senza discovery template (--prompts-dir non specificato).")
+            print("       Usa --prompt <path> per batch con template, oppure 'Testo libero' qui sotto.\n")
+
     # --- Menu scelta prompt ---
-    print("Prompt disponibili:")
-    for i, pt in enumerate(prompt_templates, start=1):
-        desc_part = f"  — {pt['description']}" if pt["description"] else ""
-        print(f"  [{i}] {pt['label']}{desc_part}")
-    free_idx = len(prompt_templates) + 1
-    print(f"  [{free_idx}] Testo libero")
+    if prompt_templates:
+        print("Prompt disponibili:")
+        for i, pt in enumerate(prompt_templates, start=1):
+            desc_part = f"  — {pt['description']}" if pt["description"] else ""
+            print(f"  [{i}] {pt['label']}{desc_part}")
+        free_idx = len(prompt_templates) + 1
+        print(f"  [{free_idx}] Testo libero")
+    else:
+        free_idx = 1
+        print("  [1] Testo libero (nessun template scoperto)")
 
     default_choice = str(free_idx)
     raw_choice = _input(f"Scelta [default: {default_choice}]: ").strip()

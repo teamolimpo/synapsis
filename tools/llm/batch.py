@@ -118,6 +118,10 @@ def render_template(
     if extra_vars:
         for k, v in extra_vars.items():
             result = result.replace(f"{{{{{k}}}}}", v)
+
+    # Support common aliases used by existing prompt libraries (Library/prompts etc.)
+    # so that templates using {{input_text}} instead of {{kba_text}} still work.
+    result = result.replace("{{input_text}}", kba_text)
     return result
 
 
@@ -130,12 +134,18 @@ def expand_inputs(raw_inputs: list[str]) -> list[Path]:
     """
     Espande una lista di stringhe (path o glob) in una lista di Path esistenti.
 
+    Supporta **collezione di file**:
+    - Più chiamate --input ripetute (es. --input a.md --input b.md)
+    - Glob che espandono a N file (es. --input "docs/**/*.md")
+    - Mix di entrambi
+
     Usa Path.glob() per espandere i pattern — sicuro su Windows con backslash.
     I duplicati vengono rimossi mantenendo l'ordine di apparizione.
 
     Args:
         raw_inputs: Lista di stringhe che possono essere path assoluti,
-                    path relativi, o glob pattern
+                    path relativi, o glob pattern. Può contenere più elementi
+                    per rappresentare una collezione di input.
 
     Returns:
         Lista di Path esistenti, deduplicata e ordinata
@@ -220,9 +230,11 @@ def run_merge(
     """
     Esegue una singola chiamata API con tutti i file di input concatenati.
 
-    Differisce da run_batch() in quanto non itera sui file: li unisce in un
-    unico blocco di testo separato da divisori, sostituisce {{kba_text}} con
-    il blocco risultante e fa una sola chiamata al provider.
+    Usato quando l'utente passa --merge:
+    - input (collezione di file via --input ripetuto o glob multipli) viene
+      unito in un unico blocco (separatori "--- filename ---")
+    - {{kba_text}} (o alias {{input_text}}) viene sostituito con il blocco intero
+    - Una sola chiamata LLM (utile per analisi cross-documento, confronti, sintesi)
 
     Il nome del file di output e' costruito dal primo file di input:
         <primo_stem>_merged-<provider>.md
@@ -307,24 +319,27 @@ def run_batch(
     """
     Esegue la chiamata API per ogni file di input e gestisce l'output.
 
-    Per ogni file:
-    1. Legge il contenuto
-    2. Renderizza il template con i placeholder
-    3. Chiama il provider
-    4. Scrive il risultato su file (se output_dir) o su stdout
+    Usato per default batch (senza --merge):
+    - input_files può essere una **collezione** (da --input ripetuto o glob che matcha N file)
+    - Per ogni file: legge → render template ({{kba_text}} / {{input_text}} / {{filename}} / custom --var) → LLM call
 
-    Il progresso viene stampato su stderr nel formato:
-        [1/10] nome-file.md ... ok (1.2s)
+    Progresso su stderr:
+        [1/10] nome-file.md ... ok (1.2s) -> nome-file-provider.json
         [2/10] altro-file.md ... ERRORE: messaggio
+
+    Output:
+    - Se --output DIR: scrive {stem}-{provider}.json (prova a estrarre blocco ```json se presente)
+    - Altrimenti: stdout con separatori per file
 
     Args:
         provider: Istanza del provider LLM
         provider_name: Nome del provider per i nomi file di output
         template: Testo del template (gia' estratto dalla sezione ## Prompt)
-        input_files: Lista di Path dei file da processare
+        input_files: Lista di Path dei file da processare (collezione supportata)
         output_dir: Directory dove salvare i risultati (None = stdout)
         model: Override modello (None = default provider)
         system: System prompt opzionale
+        skip_existing: Salta file se output già presente
 
     Returns:
         Numero di file elaborati con errore (0 = tutto ok)
