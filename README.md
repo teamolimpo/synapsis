@@ -121,7 +121,38 @@ resp = provider.chat("Deep research on memory patterns", model="grok-4.20-multi-
 
 It also supports Gemini, OpenRouter, image generation on supported models, and stateful chat sessions via the Responses API.
 
-Use it whenever you want to call a non-default model from inside tools you write while using Grok Build as the main orchestrator.
+### CLI usage (python -m tools.llm or `llm` if entrypoint installed)
+
+**No more hardcoded prompt directories** (previously `lib/Prompts` or `Team/Prompts`).
+
+- Prompts must be specified **explicitly** for versatility.
+- Batch supports **collections of files** via repeatable `--input` (or globs that expand to many files).
+
+Examples:
+
+```bash
+# Simple
+llm "your prompt here" --provider grok
+
+# Batch with explicit prompt from Library/prompts (real operational templates live here)
+llm --prompt Library/prompts/general/sintesi.md --input "docs/*.md" --output out/
+
+# Collection of inputs (repeated --input or glob)
+llm --prompt Library/prompts/kba/analisi-rischio-kba.md \
+    --input "kba-batch/*.md" --input "extra-notes.md" \
+    --output kba-results/ --provider grok
+
+# Merge mode: one LLM call over the entire collection (files concatenated)
+llm --prompt Library/prompts/kba/report-meeting.md \
+    --input "deliverables/kba-*.md" --merge --output out/
+
+# Interactive + explicit prompts dir for template discovery
+llm --prompts-dir Library/prompts -i
+```
+
+See `llm --help` and the rich docstring in `tools/llm/cli.py` for the full set of options (`--var`, `--dry-run`, `--merge`, images, etc.).
+
+Use the CLI or import the providers whenever you want to call a non-default model from inside tools, skills, or additional MCPs. The design emphasizes **explicit paths** so the tool is not tied to any particular folder layout.
 
 ## Project layout (kept close to original for "as-is" fidelity)
 

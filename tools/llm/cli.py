@@ -8,19 +8,38 @@ Gestisce:
 - Risoluzione del provider e della API key
 - Esecuzione della chiamata e output del risultato
 - Comando 'models': lista modelli disponibili
-- Modalita' batch: --prompt + --input
-- Modalita' interattiva: nessun argomento oppure -i
+- Modalita' batch: --prompt (esplicito) + --input (collezione di file/glob)
+- Modalita' interattiva: nessun argomento oppure -i (con --prompts-dir opzionale per discovery)
 - Generazione immagini: --image + --size + --ratio
 
-Utilizzo:
+**Design chiave (versatilita')**:
+- NESSUN path hardcoded per i prompt (prima c'era PROMPTS_DIR = lib/Prompts o Team/Prompts).
+- Il prompt template deve essere **esplicitato**:
+  - --prompt /percorso/esplicito/template.md   per batch
+  - --prompts-dir Library/prompts              per discovery in -i
+- --input accetta **una collezione di file**: ripetibile + glob (vedi expand_inputs in batch.py).
+  Esempi multi-file: --input a.md --input b.md   oppure   --input "docs/**/*.md"
+- Con --merge: tutti i file di input vengono uniti in UNICA chiamata LLM.
+- Senza --merge: una chiamata per file (batch classico).
+
+Utilizzo base:
   python -m tools.llm "testo del prompt"
   python -m tools.llm --provider gemini "testo"
   python -m tools.llm --provider grok --model grok-4.20-0309-non-reasoning "testo"
   python -m tools.llm --stdin < file.txt
   python -m tools.llm models
   python -m tools.llm models --provider grok
-  python -m tools.llm --prompt Team/Prompts/valutazione-impatto.md --input docs/*.md
   python -m tools.llm -i
+
+Batch con prompt esplicito (supporta Library/prompts e collezioni di file):
+  python -m tools.llm --prompt Library/prompts/general/sintesi.md --input docs/*.md
+  python -m tools.llm --prompt Library/prompts/kba/analisi-rischio-kba.md \
+                      --input "kba1/*.md" --input "kba2/*.md" --output out/
+  python -m tools.llm --prompt Library/prompts/kba/report-meeting.md \
+                      --input "deliverables/*.md" --merge --output out/
+  python -m tools.llm --prompts-dir Library/prompts -i     # discovery interattivo
+
+Immagini e altro:
   python -m tools.llm "un grifone" --model openai/gpt-5-image-mini --image --size 1K --ratio 1:1
 """
 
@@ -42,7 +61,6 @@ from tools.llm.config import (
     DEFAULT_IMAGE_SIZE,
     DEFAULT_PROVIDER,
     KNOWN_PRICES,
-    PROMPTS_DIR,
     TOOL_VERSION,
     VALID_IMAGE_RATIOS,
     VALID_IMAGE_SIZES,
@@ -509,8 +527,17 @@ def main(
     system: str | None = typer.Option(None, "--system", help="System prompt o path a file."),
     stdin: bool = typer.Option(False, "--stdin", help="Legge prompt da stdin."),
     interactive: bool = typer.Option(False, "--interactive", "-i", help="Modalita' interattiva."),
-    prompt_file: Path | None = typer.Option(None, "--prompt", help="Template Markdown batch."),
-    input: list[Path] | None = typer.Option(None, "--input", help="File/glob per batch."),
+    prompt_file: Path | None = typer.Option(None, "--prompt", help="Template Markdown batch (path ESPLICITO richiesto, es. Library/prompts/xxx.md)."),
+    prompts_dir: Path | None = typer.Option(
+        None,
+        "--prompts-dir",
+        help="Directory per discovery template in -i (es. Library/prompts). Opzionale, nessun default hardcoded.",
+    ),
+    input: list[Path] | None = typer.Option(
+        None,
+        "--input",
+        help="File o glob per batch. RIPETIBILE: accetta collezione di file (es. --input a.md --input 'b/*.md').",
+    ),
     output: Path | None = typer.Option(None, "--output", help="Cartella output batch."),
     merge: bool = typer.Option(False, "--merge", help="Merge file in singolo call."),
     skip_existing: bool = typer.Option(False, "--skip-existing", help="Salta output esistenti."),
@@ -676,7 +703,7 @@ def main(
             providers_map=PROVIDERS,
             get_api_key_fn=get_api_key,
             default_provider=provider,
-            prompts_dir=PROMPTS_DIR,
+            prompts_dir=prompts_dir,
             web_search=web_search,
         )
         raise typer.Exit(code=result)
@@ -781,7 +808,7 @@ def main(
             providers_map=PROVIDERS,
             get_api_key_fn=get_api_key,
             default_provider=provider,
-            prompts_dir=PROMPTS_DIR,
+            prompts_dir=prompts_dir,
             web_search=web_search,
         )
         raise typer.Exit(code=result)

@@ -281,10 +281,23 @@ def estimate_resolution(size: str, ratio: str) -> tuple[int, int]:
 
 
 # ---------------------------------------------------------------------------
-# Directory prompt predefinita
+# Directory prompt (ora opzionale / non hardcoded - design per versatilita')
 # ---------------------------------------------------------------------------
+# NON esiste più un default cablato (precedentemente lib/Prompts o Team/Prompts).
+# Principio: il prompt deve essere ESPLICITATO dall'utente.
+#
+# Utilizzo:
+#   - Batch: --prompt Library/prompts/kba/analisi-rischio-kba.md --input ...
+#   - Interactive discovery: --prompts-dir Library/prompts -i
+#
+# Vantaggi:
+# - Funziona con qualsiasi struttura (Library/prompts, Team/Prompts, vault personali, ecc.)
+# - Nessun "magic path" che rompe quando il repo o l'utente cambia layout.
+# - --input supporta collezioni (ripetibile + glob) gestite da batch.expand_inputs.
+#
+# PROMPTS_DIR rimane per retrocompatibilità con codice esterno (ora = None).
 
-PROMPTS_DIR: Path = PROJECT_ROOT / "lib" / "Prompts"
+PROMPTS_DIR: Path | None = None
 
 
 def get_api_key(provider: str) -> str:
