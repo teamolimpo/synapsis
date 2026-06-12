@@ -1,10 +1,31 @@
 # synapsis
 
-**Unified durable team memory MCP + multi-provider LLM client**, extracted as a focused, reusable package.
+**MCP Plugin for Grok Build** — Durable agent memory + handoff discipline
+
+**Durable memory layer for Grok Build agents and multi-agent workflows.**
+
+Sessions, tasks, mandatory structured handoffs (`/handoff`), unified search across timeline + knowledge, automatic compression and hygiene.  
+Use durable structured memory **instead of** stuffing everything into the context window.
+
+### Install (Grok Build — 30 seconds)
+
+```bash
+grok plugin install teamolimpo/synapsis --trust
+```
+
+Then in any chat:
+- Type `/handoff "Clear title of the piece of work"` (recommended for significant work)
+- Or `/synapsis init "topic"`, `/synapsis search "..."`, etc.
+
+Raw MCP tools are also available (namespaced `synapsis__*` — discover via the built-in `search_tool` first).
+
+---
+
+**Unified durable team memory MCP + skills package**, extracted as a focused, reusable plugin.
 
 Synapsis is a standalone memory layer designed for agentic workflows and Grok Build. It was originally extracted from a larger internal project.
 
-Designed to work great with **Grok Build** (and other agent harnesses that speak MCP).
+Works great with **Grok Build** (and any MCP-speaking agent system).
 
 ## Why this exists
 
@@ -165,8 +186,6 @@ This repo is now the focused, lean distribution of the **synapsis memory plugin*
 The multi-provider LLM client was part of the initial extraction but has been moved to `~/TeamOlimpo/synapsis-extras/tools/llm/` (per decision that LLM tooling does not belong in the memory plugin surface). 
 
 Many of the concepts (mandatory handoffs, structured memory, quality gates, "handoff before you return control") translate well to agentic setups and subagent coordination patterns. The git workflow companion discipline (01- rule) also lives in the extras for TeamOlimpo adopters.
-
-## Contributing / Philosophy
 
 ## Contributing / Philosophy
 
