@@ -1,5 +1,5 @@
 """
-Parsing degli argomenti CLI e logica principale per il tool llm.
+CLI argument parsing and main logic for the llm tool.
 
 Gestisce:
 - Due app Typer separate: app_main (comando principale) e app_models (subcommand models)

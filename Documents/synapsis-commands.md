@@ -21,7 +21,7 @@ uv run python -m tools.synapsis hygiene --apply
 uv run python -m tools.synapsis stats --json
 uv run python -m tools.synapsis compress --warm --apply
 
-# Vault mount (the "comando semplicissimo" for private Library/ symlink)
+# Vault mount (the quick one-command setup for private Library/ symlink)
 uv run python -m tools.synapsis vault mount
 uv run python -m tools.synapsis vault check
 
@@ -133,16 +133,16 @@ A complete, well-commented example file is available at `Documents/examples/syna
 - No more PYTHONPATH hacks, sibling checkouts, or workarounds: `uv run python -m tools.knowledge_base.chunk_indexer ...` works directly.
 - For a complete configuration file example see `Documents/examples/synapsis-config.yaml`.
 
-## 3. Tramite MCP / admin (ora pienamente funzionale)
+## 3. Via MCP / admin (now fully functional)
 
 ```json
 use_tool synapsis__admin { "act": "index", "ix": "status" }
-use_tool synapsis__admin { "act": "index", "ix": "update" }     # incrementale + embeddings/entities se presenti
-use_tool synapsis__admin { "act": "index", "ix": "rebuild" }   # full (ricrea tabelle kb)
+use_tool synapsis__admin { "act": "index", "ix": "update" }     # incremental + embeddings/entities if present
+use_tool synapsis__admin { "act": "index", "ix": "rebuild" }   # full (recreates kb tables)
 use_tool synapsis__admin { "act": "index", "ix": "clean" }
 ```
 
-Lo stub in `server.py` che faceva `from tools.knowledge_base import chunk_indexer` ora riesce perché il package è copiato e adattato dentro `tools/knowledge_base/`. Il wrapper chiama direttamente `update/rebuild/clean`. `ix=status` funziona anche senza il modulo (query diretto su `chunks`/`file_state`).
+The stub in `server.py` that did `from tools.knowledge_base import chunk_indexer` now works because the package is copied and adapted inside `tools/knowledge_base/`. The wrapper calls `update/rebuild/clean` directly. `ix=status` works even without the module (direct query on `chunks`/`file_state`).
 
 ## 4. Handoff vs Knowledge Chunks
 

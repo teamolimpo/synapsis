@@ -48,7 +48,7 @@ The public repo is the **environment** (tools, rules, skills, public SOPs).
 
 The private content (all handoffs, Wiki, projects, assets, private SOPs) lives in a separate repo (`teamolimpo/synapsis-vault`) that you symlink as `Library/`.
 
-**Comando semplicissimo** (after cloning both repos):
+**Quick one-command vault mount** (after cloning both repos):
 
 ```bash
 cd synapsis          # the public clone
@@ -60,7 +60,7 @@ bash scripts/vault-mount.sh
 synapsis vault mount
 ```
 
-You are now **subito ready** with your full work tool (durable `/handoff`, private search, projects/, etc.).
+You are now **ready to go** with your full work tool (durable `/handoff`, private search, projects/, etc.).
 
 - `bash scripts/vault-check.sh` / `synapsis vault check`
 - `bash scripts/vault-doctor.sh` for diagnostics
@@ -237,6 +237,23 @@ Then:
 
 The DB (`.synapsis/synapsis.db`) and optional `Library/` for durable handoffs are resolved relative to *your current project/workspace* (plugin-aware paths), not inside the installed plugin.
 
+**Important for the working directory / launch folder:**  
+When you do `cd /my/project; grok`, the official Grok signal for that working directory is the environment variable `GROK_WORKSPACE_ROOT` (with the compatible alias `CLAUDE_PROJECT_DIR`). These are documented in the official user-guide (hooks + workspace identity).  
+
+The synapsis plugin's `.mcp.json` now explicitly declares them so the MCP child process receives the correct value even when `uv --directory ${GROK_PLUGIN_ROOT}` is used for the plugin's own pyproject/venv selection.  
+
+`tools/common/paths.py` treats `GROK_WORKSPACE_ROOT` as the *primary source of truth* (before any cwd walking or marker discovery). Handoffs, `Library/`, `.synapsis/`, knowledge includes etc. will therefore land inside the directory you launched `grok` from.
+
+Diagnostic aid: after you perform a handoff (or any synapsis tool that writes), inspect  
+`cat /tmp/synapsis-path-debug.log`  
+It contains JSON lines with the pid, cwd seen by the MCP, the value of `GROK_WORKSPACE_ROOT`, `__file__`, plugin-context detection, chosen root and the exact reason. This is the easiest way to answer "why did it write outside my working directory?".
+
+If the log shows that `GROK_WORKSPACE_ROOT` was absent and the effective cwd was the installed plugin dir (or a parent), re-launch with the env explicitly:
+```bash
+GROK_WORKSPACE_ROOT=$(pwd) grok
+```
+(or `SYNAPSIS_WORKSPACE=$(pwd) grok`). The paths helpers honour it at the highest priority.
+
 ### Dependencies and first run (important)
 
 After `grok plugin install`, Grok checks out the code but does **not** run `uv sync` for you.
@@ -258,6 +275,18 @@ uv --directory /path/that/grok/installed/synapsis sync --frozen
 ```
 
 The same `uv --directory ... run synapsis ...` pattern works for the CLI (e.g. `synapsis stats`, `synapsis vault mount`, etc.) when using the plugin from outside a synapsis source tree.
+
+### Automatic init & hygiene (new with the plugin)
+The plugin now ships `hooks/hooks.json`. When the synapsis plugin is installed + trusted:
+
+- On `SessionStart`: it automatically runs `synapsis knowledge init` (via the plugin's uv) in your current workspace. This creates `.synapsis/` + a starter `config.yaml` (with `knowledge.include` for `Library/Wiki/` and `Library/Handoff/`, plus other defaults). No more manual init in every new project!
+- On `Stop`, `PreCompact`, `SessionEnd`: it runs the hygiene (dry consolidate + stats) automatically.
+
+This is powered by `GROK_WORKSPACE_ROOT` + `GROK_PLUGIN_ROOT` (so everything targets the right launch directory + the installed plugin code).
+
+You still get the full discipline (including explicit `synapsis__session(act="init")` / `/synapsis init` for tracking sessions, tasks and handoffs) — the plugin just removes the "I have to remember to set up the basics" friction.
+
+See also the shipped `/synapsis` and `/handoff` skills.
 
 For full synapsis discipline (AGENTS.md, rules, vault, etc.) you still copy/adopt the relevant pieces from this repo into your own project, or keep using the public clone as your "memory environment".
 

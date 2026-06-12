@@ -1,13 +1,13 @@
-"""MCP server DISMESSO.
+"""MCP server DISMISSED.
 
-Questo MCP server è stato dismesso a maggio 2026. Il tool ``kb_search``
-è stato incorporato in Synapsis come ``knowledge_search``.
+This MCP server was retired in May 2026. The ``kb_search`` tool
+has been incorporated into Synapsis as ``knowledge_search``.
 
-Le librerie (``chunk_indexer``, ``entity_extractor``, ``heading_chunker``,
-``vector_indexer``, ``rrf_fusion``, ``grep_engine``) sono ancora attive e
-importabili — Synapsis le usa internamente.
+The libraries (``chunk_indexer``, ``entity_extractor``, ``heading_chunker``,
+``vector_indexer``, ``rrf_fusion``, ``grep_engine``) are still active and
+importable — Synapsis uses them internally.
 
-Rimuovere questo file quando non ci sono più riferimenti esterni.
+Remove this file once there are no more external references.
 """
 
 import sys

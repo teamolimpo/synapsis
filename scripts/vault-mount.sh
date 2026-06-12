@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# vault-mount.sh — the "comando semplicissimo"
+# vault-mount.sh — the quick one-command vault mount
 #
 # Creates the external symlink Library -> your private vault
 # and prepares the local hot .synapsis/ dir.
@@ -10,7 +10,7 @@
 #   bash scripts/vault-mount.sh /path/to/your/vault
 #   VAULT_PATH=/custom/path bash scripts/vault-mount.sh
 #
-# After this you are "subito ready" with handoffs, private knowledge, etc.
+# After this you are ready to go with handoffs, private knowledge, etc.
 #
 set -euo pipefail
 
@@ -56,7 +56,7 @@ mkdir -p .synapsis
 echo "✅ .synapsis/ ready (local hot DB + config)"
 
 echo ""
-echo "You are now subito ready with your work tool."
+echo "You are now ready to go with your work tool."
 echo "Next steps:"
 echo "  - uv run python -m tools.synapsis stats     (or just 'synapsis stats' after install)"
 echo "  - In Grok Build: try /handoff or /synapsis search"

@@ -78,7 +78,7 @@ Use the project skills instead of raw tool sequences when possible:
 ## References
 
 - Detailed patterns, tool-by-tool guidance, examples, token efficiency rules: **[GROK.md](./GROK.md)**
-- Handoff files + curated knowledge: `Library/` (symlinked private vault — tensor-mill only; see README "Tensor-mill / full memory setup" for the `synapsis vault mount` or `bash scripts/vault-mount.sh` comando semplicissimo)
+- Handoff files + curated knowledge: `Library/` (symlinked private vault — tensor-mill only; see README "Tensor-mill / full memory setup" for the `synapsis vault mount` or `bash scripts/vault-mount.sh` quick one-command setup)
 - Hot DB: `.synapsis/synapsis.db` (gitignored)
 - Synapsis source: `tools/synapsis/`
 - CLI for maintenance: `uv run python -m tools.synapsis --help`

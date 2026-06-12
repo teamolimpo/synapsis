@@ -613,7 +613,7 @@ class TestSearch:
     """search() — unified across all scopes, layers, token_budget."""
 
     def test_basic_auto(self, store: SynapsisStore) -> None:
-        """Query normale, scope='auto' — verifica struttura risposta."""
+        """Normal query, scope='auto' — verify response structure."""
         s = _init_session(store, topic="Test search")
         _add_obs(store, s["id"], "note", "This is a test observation about search queries")
         _init_task(store, "T-SEARCH-001", desc="Implement search functionality")
@@ -627,7 +627,7 @@ class TestSearch:
         assert result["has_more"] is True
 
     def test_layer1_token_count(self, store: SynapsisStore) -> None:
-        """Layer 1 — contesto ≤ ~100 token (≤ 400 chars)."""
+        """Layer 1 — context ≤ ~100 tokens (≤ 400 chars)."""
         s = _init_session(store)
         _add_obs(store, s["id"], "note", "A" * 500)
         result = _parse(server_module.search(query="A", l=1))
@@ -635,7 +635,7 @@ class TestSearch:
         assert len(result["context"]) <= 400
 
     def test_layer2_token_count(self, store: SynapsisStore) -> None:
-        """Layer 2 — contesto ≤ ~500 token (≤ 2000 chars)."""
+        """Layer 2 — context ≤ ~500 tokens (≤ 2000 chars)."""
         s = _init_session(store)
         _add_obs(store, s["id"], "note", "B" * 500)
         result = _parse(server_module.search(query="B", l=2))
@@ -643,21 +643,21 @@ class TestSearch:
         assert len(result["context"]) <= 2000
 
     def test_token_budget_layer1(self, store: SynapsisStore) -> None:
-        """tk=100 forza layer 1."""
+        """tk=100 forces layer 1."""
         s = _init_session(store)
         _add_obs(store, s["id"], "note", "C" * 500)
         result = _parse(server_module.search(query="C", tk=100))
         assert result["layer"] == 1
 
     def test_token_budget_layer2(self, store: SynapsisStore) -> None:
-        """tk=500 forza layer 2."""
+        """tk=500 forces layer 2."""
         s = _init_session(store)
         _add_obs(store, s["id"], "note", "D" * 500)
         result = _parse(server_module.search(query="D", tk=500))
         assert result["layer"] == 2
 
     def test_layer3_full_payload(self, store: SynapsisStore) -> None:
-        """Layer 3 restituisce JSON completo con domains e domain_counts."""
+        """Layer 3 returns full JSON with domains and domain_counts."""
         s = _init_session(store, topic="Full payload test")
         _add_obs(store, s["id"], "note", "Test observation for layer 3")
         _init_task(store, "T-SEARCH-L3-001", desc="Layer 3 task")
@@ -668,13 +668,13 @@ class TestSearch:
         assert "total_results" in context_data
 
     def test_task_ref_auto(self, store: SynapsisStore) -> None:
-        """Query='T-MATCH-001', scope='auto' → trova task."""
+        """Query='T-MATCH-001', scope='auto' → finds task."""
         _init_task(store, "T-MATCH-001", desc="Match test task")
         result = _parse(server_module.search(query="T-MATCH-001", scope="auto"))
         assert result["token_count"] > 0
 
     def test_scope_observations(self, store: SynapsisStore) -> None:
-        """scope='observations' restituisce solo osservazioni."""
+        """scope='observations' returns only observations."""
         s = _init_session(store)
         _add_obs(store, s["id"], "note", "Searchable observation note")
         result = _parse(server_module.search(query="searchable", scope="observations", l=3))
@@ -683,7 +683,7 @@ class TestSearch:
             assert "observations" in data.get("domains", {})
 
     def test_scope_tasks(self, store: SynapsisStore) -> None:
-        """scope='tasks' restituisce solo task."""
+        """scope='tasks' returns only tasks."""
         _init_task(store, "T-SCOPE-001", desc="Scope task test")
         result = _parse(server_module.search(query="scope", scope="tasks", l=3))
         if result.get("layer") == 3:
@@ -691,27 +691,27 @@ class TestSearch:
             assert "tasks" in data.get("domains", {})
 
     def test_scope_entities(self, store: SynapsisStore) -> None:
-        """scope='entities' restituisce entità."""
+        """scope='entities' returns entities."""
         s = _init_session(store)
         _add_obs(store, s["id"], "note", "Entity test")
         result = _parse(server_module.search(query="entity", scope="entities", l=3))
         assert "error" not in result
 
     def test_scope_session(self, store: SynapsisStore) -> None:
-        """scope='session' restituisce sessioni."""
+        """scope='session' returns sessions."""
         _init_session(store, topic="Session search test")
         result = _parse(server_module.search(query="session", scope="session", l=3))
         assert "error" not in result
 
     def test_scope_timeline(self, store: SynapsisStore) -> None:
-        """scope='timeline' restituisce observation timeline."""
+        """scope='timeline' returns observation timeline."""
         s = _init_session(store)
         _add_obs(store, s["id"], "note", "Timeline test obs")
         result = _parse(server_module.search(query="timeline", scope="timeline"))
         assert "error" not in result
 
     def test_scope_memory_layers(self, store: SynapsisStore) -> None:
-        """scope='memory_layers' non deve fallire."""
+        """scope='memory_layers' must not fail."""
         result = _parse(server_module.search(query="memory", scope="memory_layers"))
         assert "error" not in result
 

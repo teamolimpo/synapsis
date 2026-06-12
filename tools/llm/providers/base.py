@@ -52,7 +52,7 @@ class ChatSessionProtocol(Protocol):
 
     def reset(self) -> None:
         """
-        Azzera la history della sessione corrente.
+        Clears the current session history.
 
         L'implementazione e' provider-specifica: alcuni SDK supportano
         il reset diretto, altri richiedono la ricreazione della sessione.
@@ -90,7 +90,7 @@ class ProviderProtocol(Protocol):
         agent_count: int = 4,
     ) -> ChatResponse:
         """
-        Invia un prompt al modello e restituisce la risposta.
+        Sends a prompt to the model and returns the response.
 
         Args:
             prompt: Il testo del prompt da inviare
@@ -105,7 +105,7 @@ class ProviderProtocol(Protocol):
 
     def list_models(self) -> list[ModelInfo]:
         """
-        Restituisce l'elenco dei modelli disponibili per questo provider.
+        Returns the list of available models for this provider.
 
         Returns:
             Lista di ModelInfo ordinata per id

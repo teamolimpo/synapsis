@@ -1,28 +1,34 @@
-"""Condivisione path di progetto per tutti i tool Team Olimpo / synapsis.
+"""Project path sharing for all Team Olimpo / synapsis tools.
 
-Fornisce tre funzioni per risolvere i path in modo consistente,
-gestendo correttamente symlink (principalmente per `Library/` quando
-viene puntato a un vault esterno; `.synapsis/` è invece il default
-low-latency locale per il DB operativo).
+Provides functions to resolve paths consistently, correctly handling
+symlinks (primarily for `Library/` when it points to an external vault;
+`.synapsis/` is the default low-latency local store for the operational DB).
 
-* :func:`project_root` — radice del repository (via ``Path(__file__)`` resolution)
-* :func:`resolve_relative` — join con ``project_root`` **senza** risolvere symlink
-* :func:`resolve_absolute` — join con ``project_root`` **con** risoluzione symlink
-* :func:`ensure_vault_mounted` — **safety guard** (chiama prima di scrivere in Library/)
+Two distinct concepts (to support "synapsis as a Grok plugin"):
+
+* :func:`project_root` — root of the synapsis package (via ``Path(__file__)``).
+  Used for internal code / "is_self" checks, not for user data.
+* :func:`workspace_root` — active root of the *consumer project* (where
+  .synapsis/, Library/, knowledge etc. live). In plugin context it discovers
+  from CWD (skipping the plugin package itself) + env overrides.
+* :func:`resolve_relative` / :func:`resolve_absolute` — now based on workspace_root
+  (plugin-aware); join for data/config with/without symlink resolution.
+* :func:`ensure_vault_mounted` — **safety guard** (call before writing to Library/)
 
 Usage::
 
     from tools.common.paths import (
-        project_root, resolve_relative, resolve_absolute, ensure_vault_mounted
+        project_root, workspace_root, resolve_relative, resolve_absolute, ensure_vault_mounted
     )
 
-    root = project_root()
+    pkg  = project_root()                    # where the synapsis code lives
+    ws   = workspace_root()                  # where the open project's data lives
     rel  = resolve_relative("Library")       # lexical (symlink preserved)
     abs  = resolve_absolute("Library")       # real vault path
     db   = resolve_absolute(".synapsis/synapsis.db")
 
     vault = ensure_vault_mounted()           # raises clear error with the exact
-                                             # "comando semplicissimo" if not ready
+                                             # quick vault mount command if not ready
 """
 
 from __future__ import annotations
@@ -50,14 +56,14 @@ def project_root() -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Plugin / library mode support (minimo for marketplace distribution)
+# Plugin / library mode support (minimal for marketplace distribution)
 # When synapsis runs as a Grok plugin (GROK_PLUGIN_ROOT in env or path under
 # ~/.grok/plugins or marketplace-cache), user data (DB, Library) must resolve
 # relative to the *consumer's* workspace (CWD), not the plugin checkout.
 # project_root() is kept unchanged: it always reports the synapsis package root.
 # ---------------------------------------------------------------------------
 
-_PLUGIN_MARKERS = (".grok/plugins", "installed-plugins", "marketplace-cache", ".claude/plugins")
+_PLUGIN_MARKERS = (".grok/plugins", "installed-plugins", "marketplace-cache", ".claude/plugins", "synapsis-")
 
 
 def _is_plugin_context() -> bool:
@@ -75,13 +81,42 @@ def _is_plugin_context() -> bool:
     return False
 
 
-def _discover_workspace_root() -> Path | None:
-    """Walk upward from CWD for a consumer project root (git, .grok, pyproject...).
-    Returns None if nothing sensible is found (fallback will apply).
+def _is_synapsis_package(p: Path) -> bool:
+    """Return True if *p* looks like the root of the synapsis package/plugin itself.
+
+    Used to prevent workspace_root() from accidentally selecting the plugin
+    installation directory (which ships with .grok/ + pyproject.toml + plugin.json)
+    as the consumer workspace for .synapsis/ and Library/.
     """
-    start = Path.cwd().resolve()
+    if (p / "plugin.json").exists():
+        return True
+    if (p / "tools" / "synapsis" / "server.py").exists():
+        return True
+    pp = p / "pyproject.toml"
+    if pp.exists():
+        try:
+            txt = pp.read_text(encoding="utf-8", errors="ignore")
+            if 'name = "synapsis"' in txt or "name = 'synapsis'" in txt:
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def _discover_workspace_root(start: Path | None = None) -> Path | None:
+    """Walk upward from the given start (or CWD) for a consumer project root.
+
+    Looks for .git, .grok directory, or pyproject.toml.
+    Explicitly skips directories that are the synapsis package/plugin itself.
+    """
+    if start is None:
+        start = Path.cwd().resolve()
+    else:
+        start = start.resolve()
     for p in [start] + list(start.parents):
         if (p / ".git").exists() or (p / ".grok").exists() or (p / "pyproject.toml").exists():
+            if _is_synapsis_package(p):
+                continue
             return p
     return None
 
@@ -89,55 +124,149 @@ def _discover_workspace_root() -> Path | None:
 def workspace_root() -> Path:
     """Active workspace for user data (DB, Library, knowledge, etc.).
 
-    In plugin context: prefer discovery from the current working directory
-    (i.e. the project that installed/uses the synapsis plugin).
-    Otherwise (or if discovery fails): fall back to the classic module-based
-    project_root() so development inside the synapsis clone continues to work.
-    """
-    if _is_plugin_context():
-        ws = _discover_workspace_root()
-        if ws is not None:
-            return ws
-        # In plugin mode, if no project marker found in ancestor tree, fall back to the
-        # immediate current working directory as the workspace. This prevents accidentally
-        # writing DB/Library/handoffs into the plugin installation dir for bare test dirs
-        # or projects without .git/.grok/pyproject.toml.
-        return Path.cwd().resolve()
-    return project_root()
+    Per official Grok Build documentation, the canonical signal for the
+    working directory (the directory from which `grok` was launched / the
+    root of the current workspace) is the environment variable
+    `GROK_WORKSPACE_ROOT` (with `CLAUDE_PROJECT_DIR` as a compatible alias).
+    These are injected by the runner for hooks and are the authoritative value
+    that plugin/MCP code should use when it needs to write files inside the
+    user's launch working directory (e.g. Library/Handoff for handoffs).
 
+    This function therefore treats `GROK_WORKSPACE_ROOT` / `CLAUDE_PROJECT_DIR`
+    as the *highest priority / primary source of truth* and returns it
+    immediately when present. All other discovery (cwd walking, markers, plugin
+    detection) is only a fallback when the official env is absent.
+
+    The previous SYNAPSIS_WORKSPACE alias is still supported for manual
+    overrides / tests.
+    """
+    _log_path_debug(
+        "workspace_root-entry",
+        cwd=str(Path.cwd()),
+        pwd=os.environ.get("PWD"),
+        grok_ws_raw=os.environ.get("GROK_WORKSPACE_ROOT"),
+        claude_raw=os.environ.get("CLAUDE_PROJECT_DIR"),
+        plugin_ctx=_is_plugin_context(),
+    )
+
+    # Official Grok signal first (GROK_WORKSPACE_ROOT + Claude alias).
+    # Only accept real expanded absolute paths. The .mcp.json may contain the
+    # literal template "${GROK_WORKSPACE_ROOT}" (Grok did not expand it for the
+    # plugin's MCP registration in this run). We ignore such values.
+    for env_key in ("GROK_WORKSPACE_ROOT", "CLAUDE_PROJECT_DIR", "SYNAPSIS_WORKSPACE", "GROK_WORKSPACE"):
+        env_val = os.environ.get(env_key)
+        if env_val and not env_val.startswith("${") and env_val.startswith("/"):
+            p = Path(env_val).resolve()
+            _log_path_debug("official-env", env_key=env_key, chosen=str(p))
+            return p
+
+    # Strong practical signal from the user's shell: PWD at the moment `grok` was launched.
+    # In the reported failure, os.getcwd() inside the MCP was the plugin dir, but
+    # the PWD env was correctly the test project (the working directory).
+    # We use this to drive discovery when the actual cwd is polluted by the plugin
+    # launch mechanism (uv --directory + how the host spawns plugin .mcp.json MCPs).
+    pwd = os.environ.get("PWD")
+    pwd_path = Path(pwd).resolve() if pwd else None
+
+    if _is_plugin_context():
+        start = pwd_path if (pwd_path and pwd_path.exists() and not _is_synapsis_package(pwd_path)) else None
+        ws = _discover_workspace_root(start=start)
+        if ws is not None:
+            _log_path_debug("plugin-discover", chosen=str(ws), used_pwd=bool(start))
+            return ws
+
+        # Fallback: never return the plugin package itself as workspace.
+        fb = pwd_path if (pwd_path and pwd_path.exists()) else Path.cwd().resolve()
+        if _is_synapsis_package(fb):
+            for anc in fb.parents:
+                if not _is_synapsis_package(anc):
+                    _log_path_debug("plugin-fallback-ancestor", chosen=str(anc))
+                    return anc
+            home = Path.home().resolve()
+            _log_path_debug("plugin-fallback-home", chosen=str(home))
+            return home
+        _log_path_debug("plugin-fallback-cwd-or-pwd", chosen=str(fb))
+        return fb
+
+    p = project_root()
+    _log_path_debug("dev-project-root", chosen=str(p))
+    return p
+
+
+def _log_path_debug(reason: str, **extra: object) -> None:
+    """Best-effort diagnostic for why the workspace resolved this way.
+
+    Appends a single JSON line to /tmp/synapsis-path-debug.log (world-readable
+    in /tmp). The user can `cat /tmp/synapsis-path-debug.log` (or the file with
+    pid suffix if you extend it) right after reproducing a handoff to see
+    exactly what the MCP process saw: cwd, relevant env vars (especially the
+    official GROK_WORKSPACE_ROOT), __file__, plugin context, chosen value and
+    the reason.
+
+    Never raises and has zero dependencies beyond the stdlib already imported.
+    """
+    try:
+        import datetime as _dt
+        import json as _json
+        rec = {
+            "ts": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+            "pid": os.getpid(),
+            "reason": reason,
+            "cwd": str(Path.cwd()),
+            "grok_workspace_root": os.environ.get("GROK_WORKSPACE_ROOT"),
+            "claude_project_dir": os.environ.get("CLAUDE_PROJECT_DIR"),
+            "grok_plugin_root": os.environ.get("GROK_PLUGIN_ROOT"),
+            "grok_plugin_data": os.environ.get("GROK_PLUGIN_DATA"),
+            "pwd_env": os.environ.get("PWD"),
+            "module_file": str(Path(__file__).resolve()) if "__file__" in globals() else None,
+            **{k: str(v) for k, v in extra.items()},
+        }
+        line = _json.dumps(rec, ensure_ascii=False) + "\n"
+        with open("/tmp/synapsis-path-debug.log", "a", encoding="utf-8") as f:
+            f.write(line)
+    except Exception:
+        # Diagnostics must never break path resolution or handoff writes.
+        pass
 
 def resolve_relative(*parts: str) -> Path:
-    """Join *parts* with :func:`project_root` — does **not** resolve symlinks.
+    """Join *parts* with :func:`workspace_root` — does **not** resolve symlinks.
 
-    Use this when the resulting path must remain under ``project_root`` for
-    operations like :meth:`~pathlib.Path.relative_to`, cache keys, or
-    arguments passed to subprocesses (e.g. ``ripgrep``).
+    This is the preferred helper for data paths that belong to the *active
+    consumer workspace* (the project using synapsis, which may be different
+    from the synapsis package when loaded as a Grok plugin).
+
+    Use this when the resulting path must remain under the workspace for
+    operations like :meth:`~pathlib.Path.relative_to`, config files,
+    knowledge include roots, etc.
+
+    In non-plugin (dev) usage this is equivalent to the old project_root behaviour.
 
     Args:
-        *parts: Path segments to join after ``project_root``.
+        *parts: Path segments to join after the active workspace root.
 
     Returns:
-        A ``Path`` that is ``project_root / joined_parts`` **without**
+        A ``Path`` that is ``workspace_root / joined_parts`` **without**
         calling ``.resolve()``, so symlinks (e.g. Library) are preserved.
     """
-    return project_root().joinpath(*parts)
+    return workspace_root().joinpath(*parts)
 
 
 def resolve_absolute(*parts: str) -> Path:
-    """Join *parts* with :func:`project_root` and resolve **all** symlinks.
+    """Join *parts* with :func:`workspace_root` and resolve **all** symlinks.
 
+    Plugin-aware equivalent of the old project-root version.
     Use this for actual I/O operations (``read_text``, ``write_text``,
     ``is_file``, ``is_dir``, ``exists``) so that the real filesystem path
     is used.
 
     Args:
-        *parts: Path segments to join after ``project_root``.
+        *parts: Path segments to join after the active workspace root.
 
     Returns:
         A ``Path`` with all symlinks resolved (useful when Library is symlinked
         to an external vault; .synapsis/ is normally local and does not need this).
     """
-    return project_root().joinpath(*parts).resolve()
+    return workspace_root().joinpath(*parts).resolve()
 
 
 def resolve_synapsis_db() -> Path:
@@ -187,7 +316,7 @@ def ensure_vault_mounted() -> Path:
     Call this **before any write** that expects durable private storage
     (handoff files, wiki contributions, etc.).
 
-    The error message tells the user the exact "comando semplicissimo" to run.
+    The error message tells the user the exact quick vault mount command to run.
 
     Returns:
         Absolute resolved path to the vault root (after following the symlink).
@@ -205,7 +334,7 @@ def ensure_vault_mounted() -> Path:
             # Strict protection only for the canonical synapsis source tree
             raise RuntimeError(
                 "VAULT NOT MOUNTED: Library/ does not exist.\n\n"
-                "To be subito ready with your private work tool (full handoffs, "
+                "To quickly set up your private work tool (full handoffs, "
                 "private knowledge, projects/, etc.):\n\n"
                 "  1. Clone the private vault (once):\n"
                 "       git clone https://github.com/teamolimpo/synapsis-vault.git ~/synapsis-vault\n\n"

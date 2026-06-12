@@ -1,5 +1,5 @@
 """
-Logica batch per il tool llm.
+Batch logic for the llm tool.
 
 Gestisce:
 - Espansione di glob e lista file

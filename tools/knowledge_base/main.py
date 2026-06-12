@@ -1,7 +1,7 @@
-"""Entry point — DISMESSO.
+"""Entry point — DISMISSED.
 
-Il tool ``kb_search`` è stato incorporato in Synapsis.
-Vedi ``tools/synapsis/server.py`` → ``knowledge_search``.
+The ``kb_search`` tool has been incorporated into Synapsis.
+See ``tools/synapsis/server.py`` → ``knowledge_search``.
 """
 
 from tools.knowledge_base.server import main_server

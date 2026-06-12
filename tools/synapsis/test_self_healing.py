@@ -1,4 +1,4 @@
-"""Tests for Synapsis Fase 4.2 — Self-Healing Memory.
+"""Tests for Synapsis Phase 4.2 — Self-Healing Memory.
 
 Covers:
 1. ``db_health_check`` — quick, full, repair

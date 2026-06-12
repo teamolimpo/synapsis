@@ -179,7 +179,7 @@ class GeminiProvider:
                 config=config,
             )
         except Exception as exc:
-            logger.error(f"GeminiProvider: errore durante la chiamata API — {exc}")
+            logger.error(f"GeminiProvider: error during API call — {exc}")
             raise RuntimeError(f"Errore chiamata Gemini: {exc}") from exc
 
         elapsed = time.monotonic() - start

@@ -1,15 +1,15 @@
 """
-Configurazione centralizzata per il tool llm.
+Centralized configuration for the llm tool.
 
-Gestisce:
-- Caricamento del file .env dalla root del progetto
-- Lettura delle API key dalle variabili d'ambiente
-- Costanti (provider default, modelli default, versione)
-- Configurazione modelli immagine (prezzi, dimensioni, validazione)
-- Helper per stima costi e risoluzione immagini
+Handles:
+- Loading the .env file from the project root
+- Reading API keys from environment variables
+- Constants (default provider, default models, version)
+- Image model configuration (pricing, sizes, validation)
+- Helpers for cost estimation and image resolution
 
-Le API key NON vengono mai hardcoded qui — vengono lette
-esclusivamente da variabili d'ambiente dopo il caricamento di .env.
+API keys are NEVER hardcoded here — they are read
+exclusively from environment variables after loading .env.
 """
 
 from __future__ import annotations
@@ -22,30 +22,30 @@ from typing import Any
 from tools.common.paths import project_root
 
 # ---------------------------------------------------------------------------
-# Root del progetto
+# Project root
 # ---------------------------------------------------------------------------
 PROJECT_ROOT: Path = project_root()
 
 # ---------------------------------------------------------------------------
-# Caricamento .env
+# .env loading
 # ---------------------------------------------------------------------------
-# python-dotenv non fallisce se .env non esiste — si limita a non caricare nulla.
-# Questo e' il comportamento corretto: l'utente potrebbe usare variabili
-# d'ambiente dirette senza file .env.
+# python-dotenv does not fail if .env is missing — it simply loads nothing.
+# This is the correct behavior: the user may use direct environment
+# variables without a .env file.
 try:
     from dotenv import load_dotenv
 
     load_dotenv(dotenv_path=PROJECT_ROOT / ".env", override=False)
 except ImportError:
-    # Se python-dotenv non e' installato, l'errore verra' segnalato
-    # quando si tenta di usare una API key mancante.
+    # If python-dotenv is not installed, the error will be reported
+    # when attempting to use a missing API key.
     pass
 
 # ---------------------------------------------------------------------------
-# Costanti operative
+# Operational constants
 # ---------------------------------------------------------------------------
 
-# Provider usato se --provider non viene specificato
+# Provider used if --provider is not specified
 DEFAULT_PROVIDER: str = "openrouter"
 
 # Versione del tool (usata nell'output --verbose)
@@ -75,7 +75,7 @@ PROVIDER_ENV_KEYS: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 KNOWN_PRICES: dict[str, tuple[float, float]] = {
-    # xAI / Grok — prezzi aprile 2026
+    # xAI / Grok — April 2026 pricing
     "grok-4-1-fast-non-reasoning": (0.20, 0.50),
     "grok-4-1-fast-reasoning": (0.20, 0.50),
     "grok-4-0709": (3.00, 15.00),
@@ -85,11 +85,11 @@ KNOWN_PRICES: dict[str, tuple[float, float]] = {
     "grok-4.20-0309-non-reasoning": (2.00, 6.00),
     "grok-4.20-0309-reasoning": (2.00, 6.00),
     "grok-4.20-multi-agent-0309": (2.00, 6.00),
-    # Google / Gemini — prezzi aprile 2026
+    # Google / Gemini — April 2026 pricing
     "gemini-2.5-flash": (0.15, 0.60),
     "gemini-2.5-flash-lite": (0.10, 0.40),
     "gemini-2.5-pro": (1.25, 10.00),
-    # OpenRouter — modelli piu' usati (prezzi variabili per provider)
+    # OpenRouter — commonly used models (pricing varies by provider)
     "openai/gpt-4o-mini": (0.15, 0.60),
     "openai/gpt-4o": (2.50, 10.00),
     "openai/o3-mini": (1.10, 4.40),
@@ -283,7 +283,7 @@ def estimate_resolution(size: str, ratio: str) -> tuple[int, int]:
 # ---------------------------------------------------------------------------
 # Directory prompt (ora opzionale / non hardcoded - design per versatilita')
 # ---------------------------------------------------------------------------
-# NON esiste più un default cablato (precedentemente lib/Prompts o Team/Prompts).
+# There is no longer a hardcoded default (previously lib/Prompts or Team/Prompts).
 # Principio: il prompt deve essere ESPLICITATO dall'utente.
 #
 # Utilizzo:
@@ -295,7 +295,7 @@ def estimate_resolution(size: str, ratio: str) -> tuple[int, int]:
 # - Nessun "magic path" che rompe quando il repo o l'utente cambia layout.
 # - --input supporta collezioni (ripetibile + glob) gestite da batch.expand_inputs.
 #
-# PROMPTS_DIR rimane per retrocompatibilità con codice esterno (ora = None).
+# PROMPTS_DIR remains for backward compatibility with external code (now = None).
 
 PROMPTS_DIR: Path | None = None
 
@@ -370,7 +370,7 @@ def _print_missing_key_error(provider: str, env_var: str) -> None:
 
     lines += [
         "",
-        "Nota: il file .env e' escluso da git (.gitignore) — non verra' mai committato.",
+        "Note: the .env file is excluded from git (.gitignore) — it will never be committed.",
     ]
 
     print("\n".join(lines), file=sys.stderr)

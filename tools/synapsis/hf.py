@@ -7,10 +7,10 @@ Usage::
 
     from tools.synapsis.hf import hf_new, hf_get
     from tools.synapsis.store import SynapsisStore
-    from tools.common.paths import project_root
+    from tools.common.paths import workspace_root
 
     store = SynapsisStore()
-    root = project_root()
+    root = workspace_root()
     result = hf_new(store, root, type="report", title="...",
                     body="...", agent="efesto")
     # -> {"ref": "hf-a3k9", "file": "Library/Handoff/...", ...}
@@ -164,6 +164,29 @@ def write_handoff_file(
     # Prevents creating a real local Library/ dir inside the public clone
     # when the external vault symlink is not mounted.
     ensure_vault_mounted()
+
+    # Official-workspace guard + cross-check (per plan).
+    # The `project_root` param came from server.py's workspace_root() at tool-invoke time.
+    # If the current resolution (now that GROK_WORKSPACE_ROOT from .mcp.json is
+    # present in the child) would pick something else, or if we are about to write
+    # under the plugin package itself, we surface the diagnostics and refuse.
+    try:
+        from tools.common.paths import workspace_root as _ws, _is_synapsis_package as _is_syn_pkg, _log_path_debug as _log_dbg
+        _cur = _ws()
+        _log_dbg("hf-write-snapshot", passed_project_root=str(project_root), current_ws=str(_cur))
+        if str(_cur) != str(project_root):
+            logger.warning(f"write_handoff_file: passed project_root={project_root} != current workspace_root()={_cur}")
+        if _is_syn_pkg(project_root) or "installed-plugins" in str(project_root) or str(project_root) == str(_cur) and _is_syn_pkg(_cur):
+            raise RuntimeError(
+                f"Refusing to write handoff/Library under suspicious root={project_root} "
+                f"(current resolution gave {_cur}). Inspect /tmp/synapsis-path-debug.log, "
+                f"ensure GROK_WORKSPACE_ROOT is visible to the MCP child (declared in .mcp.json), "
+                f"and launch `grok` from inside the desired working directory."
+            )
+    except RuntimeError:
+        raise
+    except Exception as _e:  # noqa: BLE001
+        logger.debug(f"hf path guard non-fatal: {_e}")
 
     now = datetime.now()
     year_str = now.strftime("%Y")
@@ -323,6 +346,18 @@ def write_wiki_page(
     """
     # Critical safety guard (see paths.py + ensure_vault_mounted)
     ensure_vault_mounted()
+
+    # Light cross-check (same idea as in write_handoff_file).
+    try:
+        from tools.common.paths import workspace_root as _ws, _is_synapsis_package as _is_syn_pkg, _log_path_debug as _log_dbg
+        _cur = _ws()
+        _log_dbg("hf-wiki-snapshot", passed_project_root=str(project_root), current_ws=str(_cur))
+        if _is_syn_pkg(project_root):
+            raise RuntimeError(f"Refusing wiki write under plugin package root={project_root}. See /tmp/synapsis-path-debug.log")
+    except RuntimeError:
+        raise
+    except Exception:
+        pass
 
     wiki_rel = wiki_data.get("path", "")
     if not wiki_rel:
