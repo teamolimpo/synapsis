@@ -287,7 +287,6 @@ This is powered by `GROK_WORKSPACE_ROOT` + `GROK_PLUGIN_ROOT` (so everything tar
 You still get the full discipline (including explicit `synapsis__session(act="init")` / `/synapsis init` for tracking sessions, tasks and handoffs) — the plugin just removes the "I have to remember to set up the basics" friction.
 
 See also the shipped `/synapsis` and `/handoff` skills.
-
 For full synapsis discipline (AGENTS.md, rules, vault, etc.) you still copy/adopt the relevant pieces from this repo into your own project, or keep using the public clone as your "memory environment".
 
 See also: the `/synapsis` and `/handoff` skills, `uv run python -m tools.synapsis --help`, and `grok plugin validate` / `grok plugin details synapsis`.
