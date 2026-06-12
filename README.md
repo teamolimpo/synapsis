@@ -34,7 +34,7 @@ uv sync
 grok
 ```
 
-Grok will automatically pick up the project-scoped MCP from `.grok/config.toml`.
+Grok loads the `synapsis` MCP from the plugin manifest (`plugin.json` + `.mcp.json` present in the tree). This uses the exact same launch command and `GROK_WORKSPACE_ROOT` / `GROK_PLUGIN_ROOT` injection as when the plugin is installed in any consumer project (no more direct registration/launch "from this cartella" via project config).
 
 In the TUI:
 - Type `/mcps` (or use the MCP modal) — you should see **synapsis**.
@@ -118,7 +118,7 @@ If you need the LLM client for your TeamOlimpo work, import from the extras tree
 ```
 synapsis/
 ├── .grok/
-│   └── config.toml          # MCP registration for Synapsis
+│   └── config.toml          # project notes (MCP now exclusively declared via plugin .mcp.json; see file header)
 ├── .synapsis/               # Local low-latency runtime memory (gitignored)
 │   └── synapsis.db          # The hot operational SQLite store (sessions, tasks, observations, FTS5, ...)
 ├── tools/
