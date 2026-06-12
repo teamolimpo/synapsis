@@ -102,11 +102,46 @@ def _is_synapsis_package(p: Path) -> bool:
     return False
 
 
+def _is_grok_global_config_dir(p: Path) -> bool:
+    """Return True if *p* looks like the user's global Grok app data/config root.
+
+    This contains things like installed-plugins/, bundled/, active_sessions.json etc.
+    We must never treat Grok's own global state directory as a "consumer project"
+    workspace for .synapsis/ or Library/ data.
+
+    A legitimate consumer project may have its own (local) .grok/ for skills/hooks,
+    but that local .grok/ will not contain the "installed-plugins" subtree.
+    """
+    try:
+        rp = p.resolve()
+        # Direct signals of global Grok data home
+        if (rp / ".grok" / "installed-plugins").exists():
+            return True
+        if (rp / ".grok" / "bundled").exists():
+            return True
+        if (rp / ".grok" / "active_sessions.json").exists():
+            return True
+        # If we are at $HOME (or similar) and .grok exists with plugin installs
+        home = Path.home().resolve()
+        if rp == home or str(rp).startswith(str(home) + "/"):
+            if (rp / ".grok" / "installed-plugins").exists():
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def _discover_workspace_root(start: Path | None = None) -> Path | None:
     """Walk upward from the given start (or CWD) for a consumer project root.
 
     Looks for .git, .grok directory, or pyproject.toml.
-    Explicitly skips directories that are the synapsis package/plugin itself.
+    Explicitly skips:
+      - the synapsis package/plugin itself
+      - global Grok configuration roots (e.g. the dir that owns ~/.grok/installed-plugins)
+
+    NOTE: in pure plugin/consumer usage we often short-circuit and just trust the
+    launch dir (PWD) directly instead of walking, to support bare dirs and avoid
+    accidentally climbing into the global Grok config tree.
     """
     if start is None:
         start = Path.cwd().resolve()
@@ -115,6 +150,8 @@ def _discover_workspace_root(start: Path | None = None) -> Path | None:
     for p in [start] + list(start.parents):
         if (p / ".git").exists() or (p / ".grok").exists() or (p / "pyproject.toml").exists():
             if _is_synapsis_package(p):
+                continue
+            if _is_grok_global_config_dir(p):
                 continue
             return p
     return None
@@ -138,6 +175,13 @@ def workspace_root() -> Path:
 
     The previous SYNAPSIS_WORKSPACE alias is still supported for manual
     overrides / tests.
+
+    In Grok plugin context (MCP servers loaded via .mcp.json from an installed
+    synapsis plugin), the host often does not (or did not) inject GROK_WORKSPACE_ROOT
+    into the MCP child env. In that case we rely on the PWD env var (which the
+    host preserves as the user's launch dir) + strong preference for that launch
+    dir as the data workspace. We explicitly refuse to return global Grok config
+    dirs or the plugin install dir itself.
     """
     _log_path_debug(
         "workspace_root-entry",
@@ -145,6 +189,7 @@ def workspace_root() -> Path:
         pwd=os.environ.get("PWD"),
         grok_ws_raw=os.environ.get("GROK_WORKSPACE_ROOT"),
         claude_raw=os.environ.get("CLAUDE_PROJECT_DIR"),
+        grok_plugin_root=os.environ.get("GROK_PLUGIN_ROOT"),
         plugin_ctx=_is_plugin_context(),
     )
 
@@ -160,36 +205,58 @@ def workspace_root() -> Path:
             return p
 
     # Strong practical signal from the user's shell: PWD at the moment `grok` was launched.
-    # In the reported failure, os.getcwd() inside the MCP was the plugin dir, but
-    # the PWD env was correctly the test project (the working directory).
-    # We use this to drive discovery when the actual cwd is polluted by the plugin
-    # launch mechanism (uv --directory + how the host spawns plugin .mcp.json MCPs).
+    # In the reported failure, os.getcwd() inside the MCP was the plugin dir (due to
+    # "uv --directory ${GROK_PLUGIN_ROOT}"), but the PWD env was correctly the user's
+    # launch directory. We treat PWD as the intended workspace for data in plugin mode.
     pwd = os.environ.get("PWD")
     pwd_path = Path(pwd).resolve() if pwd else None
+    cwd_path = Path.cwd().resolve()
+    launch = pwd_path if (pwd_path and pwd_path.exists()) else cwd_path
+
+    pkg = project_root()
+
+    # If we appear to be running inside the synapsis development tree itself
+    # (dev on the plugin, or testing the source tree "as a plugin" via its local
+    # .mcp.json), the workspace for .synapsis/ and Library/ is the tree.
+    # This must take precedence even if _is_plugin_context() is True because
+    # GROK_PLUGIN_ROOT pointed at the source.
+    if (launch == pkg or pkg in list(launch.parents)[:3] or launch in list(pkg.parents)[:1]):
+        if (pkg / "tools" / "synapsis" / "server.py").exists() and (pkg / "plugin.json").exists():
+            # Confirmed: we are operating on the synapsis source tree (dev or self-test).
+            # Do not escape to parent; use the tree as both package and workspace.
+            _log_path_debug("dev-inside-source-tree", chosen=str(pkg), launch=str(launch))
+            return pkg
 
     if _is_plugin_context():
-        start = pwd_path if (pwd_path and pwd_path.exists() and not _is_synapsis_package(pwd_path)) else None
-        ws = _discover_workspace_root(start=start)
-        if ws is not None:
-            _log_path_debug("plugin-discover", chosen=str(ws), used_pwd=bool(start))
-            return ws
-
-        # Fallback: never return the plugin package itself as workspace.
-        fb = pwd_path if (pwd_path and pwd_path.exists()) else Path.cwd().resolve()
-        if _is_synapsis_package(fb):
-            for anc in fb.parents:
-                if not _is_synapsis_package(anc):
-                    _log_path_debug("plugin-fallback-ancestor", chosen=str(anc))
+        # Plugin / installed usage in a *consumer* project.
+        # Primary rule (post-merge regression fix): the user's launch directory
+        # (what they had open / `cd`ed into before running grok) **is** the workspace
+        # for synapsis data, unless that dir *is* the plugin install tree.
+        # We intentionally do **not** do greedy ancestor walking here, because
+        # that caused bare dirs under $HOME (or any dir without .git/.grok/pyproject)
+        # to climb all the way to the global ~/.grok owner and create .synapsis/
+        # and Library/ in the wrong place.
+        if _is_synapsis_package(launch) or _is_grok_global_config_dir(launch):
+            # Rare: somehow the launch dir itself was the plugin tree or global root.
+            # Climb the minimum to reach a non-plugin, non-global ancestor.
+            for anc in launch.parents:
+                if not _is_synapsis_package(anc) and not _is_grok_global_config_dir(anc):
+                    _log_path_debug("plugin-escape-from-bad-launch", chosen=str(anc), launch=str(launch))
                     return anc
             home = Path.home().resolve()
-            _log_path_debug("plugin-fallback-home", chosen=str(home))
+            _log_path_debug("plugin-escape-home", chosen=str(home))
             return home
-        _log_path_debug("plugin-fallback-cwd-or-pwd", chosen=str(fb))
-        return fb
 
-    p = project_root()
-    _log_path_debug("dev-project-root", chosen=str(p))
-    return p
+        # Happy path for consumer projects (including bare dirs, temp test dirs,
+        # projects that don't have .git yet, etc.):
+        # Trust the launch dir directly.
+        _log_path_debug("plugin-launch-dir-trusted", chosen=str(launch), used_pwd=bool(pwd_path))
+        return launch
+
+    # Non-plugin dev context (classic): inside the synapsis clone without
+    # GROK_PLUGIN_* signals, fall back to the package root computed from __file__.
+    _log_path_debug("dev-project-root", chosen=str(pkg))
+    return pkg
 
 
 def _log_path_debug(reason: str, **extra: object) -> None:
