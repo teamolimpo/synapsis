@@ -1,6 +1,6 @@
 # AGENTS.md — Synapsis Memory Discipline for Grok Build
 
-This project uses **synapsis** (the MCP server registered in `.grok/config.toml`) as the single source of durable, structured, cross-agent memory.
+This project uses **synapsis** (the MCP server provided by the plugin via `.mcp.json` / `plugin.json`, loaded whether the current workspace is a consumer project or the synapsis source tree itself) as the single source of durable, structured, cross-agent memory.
 
 **Core rule**: Use durable structured memory (synapsis) **instead of** stuffing everything into the context window. **Handoff before you return control**.
 

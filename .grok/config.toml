@@ -1,31 +1,38 @@
-# Project-scoped Grok Build config for synapsis
+# Project-scoped Grok Build config notes for the synapsis source tree (the plugin itself).
 #
-# Registers the Synapsis MCP — the unified durable memory layer
-# (sessions, tasks, handoffs, knowledge/wiki search, token compression, etc.)
-
-[mcp_servers.synapsis]
-command = "uv"
-args = ["run", "python", "-m", "tools.synapsis"]
-env = { SYNAPSIS_DB_PATH = ".synapsis/synapsis.db" }
-enabled = true
-startup_timeout_sec = 15
-
-# The LLM client (multi-provider for Grok/Gemini/OpenRouter + batch/image) was previously
-# co-located here but has been moved out of the lean plugin distribution.
+# The synapsis *MCP server* is now provided exclusively by the plugin manifest
+# (single source of truth for launch + envs, whether installed in a consumer project
+# or when `cd`ing into this source tree and running grok):
+#
+#   - plugin.json   (declares name, "skills": ".grok/skills", interface, etc.)
+#   - .mcp.json     (mcpServers.synapsis using:
+#                     uv --directory ${GROK_PLUGIN_ROOT} run --frozen python -m tools.synapsis
+#                     + injection of GROK_WORKSPACE_ROOT / GROK_PLUGIN_ROOT by the host)
+#
+# This fulfills the requirement: the MCP server "non parti da questo cartella"
+# (no more direct `uv run python -m tools.synapsis` + SYNAPSIS_DB_PATH hard-coded here),
+# "ma che venga usato il plugin stesso".
+#
+# The paths helpers (tools/common/paths.py) + server auto-init + hooks now see the
+# canonical plugin signals in both scenarios, with correct workspace resolution
+# (consumer dir vs. plugin dir) and the _is_synapsis_package guards for self-usage.
+#
+# Historical note (LLM client extraction preserved):
+# The multi-provider LLM client was previously co-located here but has been moved
+# out of the lean plugin distribution.
 # Full code: ~/TeamOlimpo/synapsis-extras/tools/llm/
 # It is not part of the synapsis plugin and is not registered as an MCP.
 
-# Project integration surface (beyond the MCP itself):
+# Integration surface for this tree:
 # - AGENTS.md + .grok/rules/*.md  → standard project rules (core discipline)
 # - GROK.md                       → expanded operational manual + examples
 # - .grok/skills/                 → /handoff and /synapsis slash commands (recommended UX)
-# - .grok/hooks/synapsis-hygiene.json → automatic hygiene (stats + dry consolidate on Stop/PreCompact)
+# - .grok/hooks/synapsis-hygiene.json → automatic hygiene while inside the source tree
+# - hooks/hooks.json (at repo root) → the hooks *shipped by the plugin* for consumers
+#   (they use ${GROK_PLUGIN_ROOT} + ${GROK_WORKSPACE_ROOT} to target the right code + right data dir)
 #
-# When using synapsis as an *installed plugin* (grok plugin install ...), the MCP
-# child receives GROK_WORKSPACE_ROOT (and CLAUDE_PROJECT_DIR) via the .mcp.json
-# env declarations. The paths helpers treat this as the authoritative "cartella
-# di lavoro" (the directory you `cd`ed into before launching `grok`). See README
-# "Grok Build Plugin" section and the debug log at /tmp/synapsis-path-debug.log.
+# See README "Grok Build Plugin & Marketplace" section and /tmp/synapsis-path-debug.log
+# for how GROK_* vars drive workspace_root() / ensure_vault_mounted() etc.
 #
 # Use the skills first: /handoff, /synapsis search ..., /synapsis hygiene etc.
 # The raw MCP tools remain available as synapsis__* via search_tool + use_tool.
