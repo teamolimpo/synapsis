@@ -1,15 +1,15 @@
 """
-Modalita' interattiva del tool llm.
+Interactive mode for the llm tool.
 
-Presenta un menu testuale che guida l'utente nella scelta di:
-- Un prompt template da una directory esplicita (--prompts-dir) oppure testo libero
-- File di input (opzionale, per batch)
-- Provider e modello
-- Salvataggio del risultato
+Presents a text menu that guides the user in choosing:
+- A prompt template from an explicit directory (--prompts-dir) or free text
+- Input file(s) (optional, for batch)
+- Provider and model
+- Saving the result
 
-Il discovery dei prompt è **opzionale** e richiede che l'utente specifichi
-esplicitamente --prompts-dir (es. Library/prompts).
-Nessun path hardcoded nel tool.
+Prompt discovery is **optional** and requires the user to explicitly
+specify --prompts-dir (e.g. Library/prompts).
+No hardcoded paths in the tool.
 """
 
 from __future__ import annotations
@@ -201,7 +201,7 @@ def run_interactive(
         if prompts_dir:
             print(f"[info] Nessun template trovato in {prompts_dir}")
         else:
-            print("[info] Modalità interattiva senza discovery template (--prompts-dir non specificato).")
+            print("[info] Interactive mode without prompt discovery template (--prompts-dir not specified).")
             print("       Usa --prompt <path> per batch con template, oppure 'Testo libero' qui sotto.\n")
 
     # --- Menu scelta prompt ---
@@ -456,22 +456,22 @@ def _run_chat_loop(
     web_search: bool = False,
 ) -> int:
     """
-    Avvia un loop di chat multi-turn con history persistente.
+    Starts a multi-turn chat loop with persistent history.
 
-    Chiama provider.start_chat_session() e usa session.send() per ogni turno.
-    Comandi speciali riconosciuti (case-insensitive):
-    - /reset        — azzera la history della sessione corrente
-    - /exit         — esce dal loop
-    - quit          — sinonimo di /exit
-    - /websearch on  — abilita ricerca web per i turni successivi (solo Grok)
-    - /websearch off — disabilita ricerca web
+    Calls provider.start_chat_session() and uses session.send() for each turn.
+    Recognized special commands (case-insensitive):
+    - /reset        — clears the current session history
+    - /exit         — exits the loop
+    - quit          — synonym for /exit
+    - /websearch on  — enables web search for subsequent turns (Grok only)
+    - /websearch off — disables web search
 
     Args:
-        provider: Istanza provider con supporto start_chat_session()
-        provider_name: Nome del provider (per output)
-        model: Override modello (None = default del provider)
-        system: System prompt opzionale
-        web_search: Stato iniziale della ricerca web (solo Grok Responses API)
+        provider: Provider instance supporting start_chat_session()
+        provider_name: Provider name (for output)
+        model: Model override (None = provider default)
+        system: Optional system prompt
+        web_search: Initial web search state (Grok Responses API only)
 
     Returns:
         Exit code (0 = uscita normale, 1 = errore)
@@ -494,7 +494,7 @@ def _run_chat_loop(
     print()
     ws_status = " | web-search ON" if current_web_search else ""
     print(f"=== Chat multi-turn ({provider_name} | {session.model}{ws_status}) ===")  # type: ignore[attr-defined]
-    print("Comandi: /reset  azzera history   /websearch on|off  ricerca web   /exit  esci")
+    print("Commands: /reset  clear history   /websearch on|off  web search   /exit  quit")
     print(_SEPARATOR)
 
     while True:
@@ -516,7 +516,7 @@ def _run_chat_loop(
             session.reset()  # type: ignore[attr-defined]
             try:
                 session = _create_session()
-                print("[Sessione ricreata — history azzerata]")
+                print("[Session recreated — history cleared]")
             except RuntimeError as exc:
                 print(f"Errore ricreazione sessione: {exc}", file=sys.stderr)
                 return 1
@@ -535,7 +535,7 @@ def _run_chat_loop(
                 try:
                     session = _create_session()
                     on_off = "attivata" if current_web_search else "disattivata"
-                    print(f"[Ricerca web {on_off} — sessione ricreata]")
+                    print(f"[Web search {on_off} — session recreated]")
                 except RuntimeError as exc:
                     print(f"Errore ricreazione sessione: {exc}", file=sys.stderr)
                     return 1

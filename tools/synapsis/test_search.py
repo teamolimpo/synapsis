@@ -5,7 +5,7 @@ Run with::
     pytest tools/synapsis/test_search.py -v --tb=short
 
 Coverage:
-    1. ``test_search_basic_auto`` — query normale, scope="auto" → all domains.
+    1. ``test_search_basic_auto`` — normal query, scope="auto" → all domains.
     2. ``test_search_layer1_token_count`` — layer=1 ≤ 100t.
     3. ``test_search_layer2_token_count`` — layer=2 ≤ 500t.
     4. ``test_search_token_budget_layer1`` — token_budget=100 → layer 1.
@@ -131,7 +131,7 @@ class TestSearchBasic:
     """Basic search behaviour."""
 
     def test_search_basic_auto(self, store: SynapsisStore) -> None:
-        """Query normale, scope='auto' — verifica che torni risultati."""
+        """Normal query, scope='auto' — verify response structure."""
         # Arrange: create data
         session = _init_session(store, topic="Test search")
         _add_obs(store, session["id"], "note", "This is a test observation about search queries")
@@ -149,7 +149,7 @@ class TestSearchBasic:
         assert result["has_more"] is True
 
     def test_search_layer1_token_count(self, store: SynapsisStore) -> None:
-        """Layer 1 — il contesto deve essere ≤ 100 token."""
+        """Layer 1 — context must be ≤ 100 tokens."""
         # Arrange
         session = _init_session(store)
         _add_obs(store, session["id"], "note", "A" * 500)
@@ -161,10 +161,10 @@ class TestSearchBasic:
         assert result["layer"] == 1
         context = result["context"]
         tokens = _count_tokens(context)
-        assert tokens <= 100, f"Layer 1 dovrebbe ≤ 100t, ma ha {tokens}t"
+        assert tokens <= 100, f"Layer 1 should be ≤ 100t, but got {tokens}t"
 
     def test_search_layer2_token_count(self, store: SynapsisStore) -> None:
-        """Layer 2 — il contesto deve essere ≤ 500 token."""
+        """Layer 2 — context must be ≤ 500 tokens."""
         # Arrange
         session = _init_session(store)
         _add_obs(store, session["id"], "note", "B" * 500)
@@ -176,7 +176,7 @@ class TestSearchBasic:
         assert result["layer"] == 2
         context = result["context"]
         tokens = _count_tokens(context)
-        assert tokens <= 500, f"Layer 2 dovrebbe ≤ 500t, ma ha {tokens}t"
+        assert tokens <= 500, f"Layer 2 should be ≤ 500t, but got {tokens}t"
 
     def test_search_token_budget_layer1(self, store: SynapsisStore) -> None:
         """token_budget=100 forza layer 1."""
@@ -188,7 +188,7 @@ class TestSearchBasic:
         result = _search(query="C", token_budget=100)
 
         # Assert
-        assert result["layer"] == 1, "token_budget=100 dovrebbe forzare layer 1"
+        assert result["layer"] == 1, "token_budget=100 should force layer 1"
 
     def test_search_token_budget_layer2(self, store: SynapsisStore) -> None:
         """token_budget=500 forza layer 2."""
@@ -200,7 +200,7 @@ class TestSearchBasic:
         result = _search(query="D", token_budget=500)
 
         # Assert
-        assert result["layer"] == 2, "token_budget=500 dovrebbe forzare layer 2"
+        assert result["layer"] == 2, "token_budget=500 should force layer 2"
 
 
 # ===================================================================
@@ -212,7 +212,7 @@ class TestSearchAuto:
     """Auto-detect scope from query pattern."""
 
     def test_search_task_ref_auto(self, store: SynapsisStore) -> None:
-        """Query='T-CHIMERA-019', scope='auto' → trova task."""
+        """Query='T-CHIMERA-019', scope='auto' → finds task."""
         # Arrange
         _init_task(store, "T-CHIMERA-019", description="Chimera integration task")
 
@@ -223,7 +223,7 @@ class TestSearchAuto:
         assert result["layer"] == 1
         context_lower = result["context"].lower()
         assert "tasks:" in context_lower or "task" in context_lower, (
-            f"Auto-detect dovrebbe trovare task, contesto: {result['context']}"
+            f"Auto-detect should find task, context: {result['context']}"
         )
         assert result["token_count"] > 0
 
@@ -235,7 +235,7 @@ class TestSearchAuto:
         # Assert
         # Since the file may not exist, we just verify it doesn't error
         assert isinstance(result, dict)
-        assert "error" not in result, f"Non dovrebbe dare errore: {result}"
+        assert "error" not in result, f"Should not return error: {result}"
 
 
 # ===================================================================
@@ -247,7 +247,7 @@ class TestSearchScope:
     """Scope-specific queries."""
 
     def test_search_timeline(self, store: SynapsisStore) -> None:
-        """scope='timeline' con since — non deve fallire."""
+        """scope='timeline' with since — must not fail."""
         # Arrange
         session = _init_session(store)
         _add_obs(store, session["id"], "note", "Timeline test observation")
@@ -257,10 +257,10 @@ class TestSearchScope:
 
         # Assert
         assert isinstance(result, dict)
-        assert "error" not in result, f"Non dovrebbe dare errore: {result}"
+        assert "error" not in result, f"Should not return error: {result}"
 
     def test_search_all_domains(self, store: SynapsisStore) -> None:
-        """scope='all' — verifica che ritenga TUTTI i domini con dati."""
+        """scope='all' — verify it includes ALL domains with data."""
         # Arrange: create data for multiple domains
         session = _init_session(store, topic="All domains test")
         _add_obs(store, session["id"], "note", "Test observation for all domains")
@@ -271,7 +271,7 @@ class TestSearchScope:
 
         # Assert
         assert isinstance(result, dict)
-        assert "error" not in result, f"Non dovrebbe dare errore: {result}"
+        assert "error" not in result, f"Should not return error: {result}"
         # layer 3 context is JSON with domains
         if result.get("layer") == 3:
             context_data = json.loads(result["context"])
@@ -289,7 +289,7 @@ class TestSearchAsLegacyReplacement:
     """Search replaces legacy session_recall tool."""
 
     def test_deprecated_alias_still_works(self, store: SynapsisStore) -> None:
-        """I vecchi tool deprecati funzionano ancora via dominio legacy."""
+        """Legacy deprecated tools still work via the legacy domain."""
         # Arrange
         session = _init_session(store, topic="Legacy test")
         _add_obs(store, session["id"], "decision", "A legacy decision observation")

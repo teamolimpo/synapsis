@@ -11,6 +11,22 @@ from typing import Any
 from loguru import logger
 
 # ---------------------------------------------------------------------------
+# Automatic initialization when the MCP server starts in a workspace.
+# This makes the plugin "automatically do the init part".
+# With correct workspace resolution (GROK_WORKSPACE_ROOT / PWD), the first
+# time the synapsis MCP is used inside a consumer project, we create
+# .synapsis/ + a starter config.yaml (with knowledge.include for Library/Wiki
+# and Handoff, plus hygiene settings). Users no longer need to manually run
+# "synapsis knowledge init" in every new project where they installed the plugin.
+# ---------------------------------------------------------------------------
+try:
+    from tools.common.config import init_knowledge_config
+
+    init_knowledge_config()
+except Exception as exc:  # noqa: BLE001
+    logger.warning(f"Automatic synapsis structure init failed (non-fatal): {exc}")
+
+# ---------------------------------------------------------------------------
 # MCP SDK — graceful fallback if missing
 # ---------------------------------------------------------------------------
 
@@ -1476,9 +1492,10 @@ def hf(
     if tref is None and task is not None:
         tref = task
     store = _get_store()
-    from tools.common.paths import project_root
+    from tools.common.paths import workspace_root, _log_path_debug
 
-    proj_root = project_root()
+    proj_root = workspace_root()
+    _log_path_debug("server-hf-root", proj_root=str(proj_root))
 
     if act in ("n", "new"):
         # Validate required params

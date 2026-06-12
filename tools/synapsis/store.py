@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS deliverables (
 );
 
 -- ============================================================
--- SESSIONS (da session_memory)
+-- SESSIONS (from session_memory)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS sessions (
     id              TEXT PRIMARY KEY,
@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 -- ============================================================
--- OBSERVATIONS (da session_memory — timeline)
+-- OBSERVATIONS (from session_memory — timeline)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS observations (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -140,7 +140,7 @@ CREATE INDEX IF NOT EXISTS idx_obs_agent ON observations(agent);
 CREATE INDEX IF NOT EXISTS idx_obs_task_ref ON observations(task_ref);
 
 -- ============================================================
--- TASKS (da taskmanager — YAML to SQLite)
+-- TASKS (from taskmanager — YAML to SQLite)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS tasks (
     id              TEXT PRIMARY KEY,
@@ -167,7 +167,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
 CREATE INDEX IF NOT EXISTS idx_tasks_parent ON tasks(parent);
 
 -- ============================================================
--- TASK_EVENTS (da taskmanager — event log)
+-- TASK_EVENTS (from taskmanager — event log)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS task_events (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -187,7 +187,7 @@ CREATE INDEX IF NOT EXISTS idx_events_task ON task_events(task_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_events_type ON task_events(type);
 
 -- ============================================================
--- ENTITIES (da session_memory — cross-session linking)
+-- ENTITIES (from session_memory — cross-session linking)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS entities (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -214,7 +214,7 @@ CREATE TABLE IF NOT EXISTS observation_entities (
 );
 
 -- ============================================================
--- SUMMARIES (da session_memory — compression layers)
+-- SUMMARIES (from session_memory — compression layers)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS summaries (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -229,7 +229,7 @@ CREATE TABLE IF NOT EXISTS summaries (
 CREATE INDEX IF NOT EXISTS idx_summary_session ON summaries(session_id, level);
 
 -- ============================================================
--- COUNTERS (da taskmanager — next ID generation)
+-- COUNTERS (from taskmanager — next ID generation)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS counters (
     area            TEXT PRIMARY KEY,
@@ -2944,10 +2944,10 @@ class SynapsisStore:
 
         p = PPath(path)
         if p.is_absolute():
-            from tools.common.paths import project_root
+            from tools.common.paths import workspace_root
 
             try:
-                path = str(p.relative_to(project_root()))
+                path = str(p.relative_to(workspace_root()))
             except ValueError:
                 pass
 
@@ -2969,7 +2969,7 @@ class SynapsisStore:
 
     def deliverable_read(self, hash_str: str, layer: int = 1) -> dict | None:
         """Resolve hash, read file, truncate by layer (1=meta, 2=500ch, 3=full)."""
-        from tools.common.paths import project_root
+        from tools.common.paths import workspace_root
 
         path = self.deliverable_resolve(hash_str)
         if not path:
@@ -2977,7 +2977,7 @@ class SynapsisStore:
         result: dict = {"h": hash_str, "p": path}
         if layer == 1:
             return result
-        full_path = project_root() / path
+        full_path = workspace_root() / path
         if not full_path.is_file():
             return None
         if layer > 1:

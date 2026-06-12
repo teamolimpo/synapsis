@@ -23,5 +23,11 @@ startup_timeout_sec = 15
 # - .grok/skills/                 → /handoff and /synapsis slash commands (recommended UX)
 # - .grok/hooks/synapsis-hygiene.json → automatic hygiene (stats + dry consolidate on Stop/PreCompact)
 #
+# When using synapsis as an *installed plugin* (grok plugin install ...), the MCP
+# child receives GROK_WORKSPACE_ROOT (and CLAUDE_PROJECT_DIR) via the .mcp.json
+# env declarations. The paths helpers treat this as the authoritative "cartella
+# di lavoro" (the directory you `cd`ed into before launching `grok`). See README
+# "Grok Build Plugin" section and the debug log at /tmp/synapsis-path-debug.log.
+#
 # Use the skills first: /handoff, /synapsis search ..., /synapsis hygiene etc.
 # The raw MCP tools remain available as synapsis__* via search_tool + use_tool.

@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "synapsis": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "${GROK_PLUGIN_ROOT}",
+        "run",
+        "--frozen",
+        "python",
+        "-m",
+        "tools.synapsis"
+      ],
+      "env": {
+        "UV_NO_PROGRESS": "1"
+      }
+    }
+  }
+}

@@ -256,7 +256,7 @@ Long forms are still accepted (normalized server-side). Update your recurring pa
 - Default agent/owner: "Poros" (override with `agent` or `owner` when it makes sense, e.g. subagent names or "GrokTest" during experiments).
 - Test data may exist under other owners — always use search or explicit filters.
 - Knowledge domain indexing (chunks) may be available via admin(index) but is optional.
-- Library/ is the mount point for the private vault (required for tensor-mill). It is intentionally not present in public-only clones. Use `synapsis vault mount` or `bash scripts/vault-mount.sh` (the "comando semplicissimo") to become ready. See the public README "Tensor-mill / full memory setup" section.
+- Library/ is the mount point for the private vault (required for tensor-mill). It is intentionally not present in public-only clones. Use `synapsis vault mount` or `bash scripts/vault-mount.sh` (the quick one-command mount) to become ready. See the public README "Tensor-mill / full memory setup" section.
 
 ## Common Patterns & Examples
 

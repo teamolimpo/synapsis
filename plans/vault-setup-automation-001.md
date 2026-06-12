@@ -4,7 +4,7 @@
 **Tracking task:** T-CREATE-001 (will be renamed/updated to T-VAULT-SETUP-001 or T-SETUP-002 after handoff)  
 **Linked review:** T-REVISIONE-001 + hf-6194 (Library/Handoff/2026/06/11/2026-06-11_0934_Poros_review_setup-review-001-revisione-strutturata.md)  
 **Date:** 2026-06-11  
-**Context:** User response to the structured review: "5 script di setup idea ottima comando semplicissimo creazione delle cartelle con sym link esterno quindi si e' subito ready col proprio strumento di lavoro. per il resto facciamo un brach e facciamo il plan per sistemare le cose che hai elencato".
+**Context:** User response to the structured review (original): "5 script di setup idea ottima comando semplicissimo creazione delle cartelle con sym link esterno quindi si e' subito ready col proprio strumento di lavoro. per il resto facciamo un brach e facciamo il plan per sistemare le cose che hai elencato".
 
 We are on a dedicated branch (mandatory per 01-git-workflow-discipline.md). Goal is to produce a clear, prioritized, implementable plan (this file) + formal synapsis handoff before writing production code.
 
@@ -13,7 +13,7 @@ We are on a dedicated branch (mandatory per 01-git-workflow-discipline.md). Goal
 Make the public + private vault split **frictionless and safe** for tensor-mill members while remaining completely invisible and non-breaking for external contributors who only clone the public repo.
 
 Specifically:
-- Provide a **comando semplicissimo** (user words) — ideally 1-5 tiny, obvious commands/scripts — so that after cloning both repos a member is "subito ready col proprio strumento di lavoro" (symlink + folders created, .synapsis/ initialized, full handoff/memory/search over private content just works).
+- Provide a **quick one-command setup** (user request, originally nicknamed "comando semplicissimo") — ideally 1-5 tiny, obvious commands/scripts — so that after cloning both repos a member is ready to go (symlink + folders created, .synapsis/ initialized, full handoff/memory/search over private content just works).
 - Address **every** item from the SETUP-REVIEW-001 report in prioritized order (starting with the Critical safety hole).
 - Keep the "public environment" (tools/, .grok/, public SOPs, rules, skills, docs) clean, contributable, and never polluted by private content or accidental local Library/ dirs.
 - Document the reality explicitly (no more "it can be symlinked" language).
@@ -41,7 +41,7 @@ All changes land via PR after the plan is reviewed.
   - Any handoffs written go to a local-only dir → not in the real vault → lost for the team.
   - Called from server.py via `project_root()`.
 - **High (P1)**: Core public docs (README quickstart, AGENTS.md, GROK.md, Documents/synapsis-commands.md) still talk about Library as an optional "can be symlinked for performance/personal vault". No explicit "Tensor-mill setup" instructions. No warnings about context leakage when editing public files with full private memory loaded.
-- **High (P1)**: No "comando semplicissimo" today. New (or returning) tensor-mill members have to manually remember the `ln -s` dance and .synapsis/ creation. Not "subito ready".
+- **High (P1)**: No quick one-command setup today. New (or returning) tensor-mill members have to manually remember the `ln -s` dance and .synapsis/ creation. Not ready to go.
 - **Medium/High (P1)**: Future private skills/tools have no defined home or discovery path. Grok Build only loads from the public `.grok/` at the opened root.
 - **Medium (P2)**: Handoff artifacts are now physically private (correct), but this is not clearly stated. Citing `hf-XXXX` or `Library/Handoff/...` in public PRs can be confusing for outsiders.
 - **Medium (P2)**: Minor hygiene — legacy `!Library/System/...` exceptions in public .gitignore; vault `Library/README.md` is almost empty; no single source of truth plan for the split.
@@ -52,9 +52,9 @@ Current branch was created clean from the review session (sid ses_20260609_13220
 
 ## Prioritized Work Items
 
-### P0 — Critical Safety + Core "Subito Ready" Experience (do first)
+### P0 — Critical Safety + Core "Ready to Go" Experience (do first)
 
-1. **Add vault mount automation — the "comando semplicissimo" (user request)**
+1. **Add vault mount automation — the quick one-command setup (user request)**
    - Primary UX goal: after `uv sync` in the public clone, one (or very few) obvious command(s) create the external symlink + any missing folders and leave the user "subito ready".
    - Proposed concrete design (to be validated in implementation):
      - Extend the existing Typer CLI (`tools/synapsis/cli.py` + entry point in `pyproject.toml`).
@@ -178,7 +178,7 @@ Current branch was created clean from the review session (sid ses_20260609_13220
 
 ## Definition of Done (for the PR)
 
-- `synapsis vault mount` (and/or scripts) exist and the happy path makes a fresh public clone + existing vault "subito ready".
+- `synapsis vault mount` (and/or scripts) exist and the happy path makes a fresh public clone + existing vault ready to go.
 - The Critical mkdir-without-guard hole is closed with a clear actionable error.
 - All high-priority doc updates from the review are landed.
 - Private skills strategy is written down.

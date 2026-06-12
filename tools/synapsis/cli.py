@@ -409,8 +409,8 @@ app.add_typer(knowledge_app, name="knowledge")
 
 
 # ---------------------------------------------------------------------------
-# Vault mount automation (P0 from review + user request for "comando semplicissimo")
-# 5 ultra-simple bash scripts also live in scripts/ for zero-dep "subito ready".
+# Vault mount automation (P0 from review + user request for the quick one-command setup)
+# 5 ultra-simple bash scripts also live in scripts/ for zero-dep "ready to go".
 # ---------------------------------------------------------------------------
 
 
@@ -430,7 +430,7 @@ def mount(
 ) -> None:
     """Create (or refresh) the external Library symlink to your private vault.
 
-    This is the Python version of the 'comando semplicissimo'.
+    This is the Python version of the quick one-command vault mount.
     After running you are immediately ready for durable handoffs and private knowledge.
     """
     from pathlib import Path
@@ -467,7 +467,7 @@ def mount(
 
     print(f"✅ Library symlinked to {target} (external)")
     print("✅ .synapsis/ prepared")
-    print("\nYou are now subito ready.")
+    print("\nYou are now ready to go.")
     print("Try: synapsis stats   or   bash scripts/vault-check.sh")
 
     # Verify with the guard (will succeed now)

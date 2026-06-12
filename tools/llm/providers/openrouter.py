@@ -1,5 +1,5 @@
 """
-Provider OpenRouter per il tool llm.
+Provider OpenRouter for the llm tool.
 
 OpenRouter e' un gateway unificato per decine di provider LLM (OpenAI, Anthropic,
 Google, Meta, Mistral, DeepSeek, ecc.) con una singola API OpenAI-compatible.
@@ -76,7 +76,7 @@ class OpenRouterProvider:
         agent_count: int = 4,
     ) -> ChatResponse:
         """
-        Invia un prompt a OpenRouter e restituisce la risposta.
+        Sends a prompt to OpenRouter and returns the response.
 
         Args:
             prompt: Testo del prompt da inviare
@@ -107,7 +107,7 @@ class OpenRouterProvider:
                 messages=messages,  # type: ignore[arg-type]
             )
         except Exception as exc:
-            logger.error(f"OpenRouterProvider: errore durante la chiamata API — {exc}")
+            logger.error(f"OpenRouterProvider: error during API call — {exc}")
             raise RuntimeError(f"Errore chiamata OpenRouter: {exc}") from exc
 
         elapsed = time.monotonic() - start

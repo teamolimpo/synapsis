@@ -1,5 +1,5 @@
 """
-Provider xAI/Grok per il tool llm.
+Provider xAI/Grok for the llm tool.
 
 Supporta due path:
 - Modelli standard (grok-4-1-*, grok-4.20-0309-*): usa SDK OpenAI con base_url xAI,
@@ -173,7 +173,7 @@ class GrokProvider:
         agent_count: int = 4,
     ) -> ChatResponse:
         """
-        Invia un prompt a Grok e restituisce la risposta.
+        Sends a prompt to Grok and returns the response.
 
         Per modelli multi-agent usa xai_sdk con streaming.
         Per tutti gli altri usa il path OpenAI-compatibile standard.
@@ -212,7 +212,7 @@ class GrokProvider:
                 messages=messages,  # type: ignore[arg-type]
             )
         except Exception as exc:
-            logger.error(f"GrokProvider: errore durante la chiamata API — {exc}")
+            logger.error(f"GrokProvider: error during API call — {exc}")
             raise RuntimeError(f"Errore chiamata Grok: {exc}") from exc
 
         elapsed = time.monotonic() - start
