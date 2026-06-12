@@ -10,12 +10,10 @@ env = { SYNAPSIS_DB_PATH = ".synapsis/synapsis.db" }
 enabled = true
 startup_timeout_sec = 15
 
-# The llm/ package (multi-provider client for Grok, Gemini, OpenRouter, etc.)
-# is a library you import from your own code/skills/MCPs:
-#   from tools.llm.providers.grok import GrokProvider
-#   from tools.llm.config import get_api_key
-#
-# It is not registered as an MCP by default.
+# The LLM client (multi-provider for Grok/Gemini/OpenRouter + batch/image) was previously
+# co-located here but has been moved out of the lean plugin distribution.
+# Full code: ~/TeamOlimpo/synapsis-extras/tools/llm/
+# It is not part of the synapsis plugin and is not registered as an MCP.
 
 # Project integration surface (beyond the MCP itself):
 # - AGENTS.md + .grok/rules/*.md  → standard project rules (core discipline)

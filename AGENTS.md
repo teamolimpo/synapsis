@@ -65,9 +65,9 @@ This project uses **synapsis** (the MCP server registered in `.grok/config.toml`
 ## Git Workflow Discipline (companion to memory / synapsis discipline)
 **Core rule**: Before *any* modification (code, docs, config, even trivial one-liners or typos) create a dedicated branch. **Never work directly on main**. All changes land on main via Pull Request after CI gates and review (self-review artifact acceptable for solo rigor).
 
-See the auto-loaded rule file: `.grok/rules/01-git-workflow-discipline.md` (created as follow-up to T-ANALISI-001 / proteo hf-ca58 research + the explicit anti-pattern documented in hf-8565 during T-GH-001).
+(This detailed rule file `01-git-workflow-discipline.md` is part of the broader TeamOlimpo process discipline and lives in `synapsis-extras/`; it is not shipped inside the lean synapsis plugin so that it does not auto-load into arbitrary consumer projects or conflict with other teams' git/SOP rules.)
 
-This is now mandatory process alongside the synapsis handoff/task discipline. SOP is our guide.
+This is recommended process alongside the synapsis handoff/task discipline when working inside the TeamOlimpo context. SOP is our guide.
 
 ## Project Skills (recommended way to use synapsis)
 

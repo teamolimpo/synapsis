@@ -16,8 +16,8 @@ This module is deliberately small and forgiving for other keys:
 - Bad YAML → warning + safe empty values (never crashes the MCP server or CLI).
 
 See also:
-- ``Documents/examples/synapsis-config.yaml`` (well-commented example)
-- ``Documents/synapsis-commands.md`` (user documentation for the knowledge section)
+- ``Documents/examples/synapsis-config.yaml`` (well-commented example, ships with the plugin)
+- ``synapsis-extras/docs/synapsis-commands.md`` (user documentation for the knowledge section; in the TeamOlimpo extras tree)
 - ``tools/knowledge_base/chunk_indexer.py`` (how the indexer consumes the config)
 """
 
