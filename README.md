@@ -21,8 +21,6 @@ Synapsis solves that with:
 
 **Library/** is the mount point for the **private vault** (teamolimpo/synapsis-vault). It is required for full durable handoffs and private knowledge (tensor-mill members). External contributors only cloning the public repo will not have it. See the "Tensor-mill / full memory setup" section below.
 
-Plus a high-quality **LLM client** (`tools/llm`) that lets you call Grok (including multi-agent variants), Gemini, OpenRouter, etc. from your own Python code, skills, or additional MCPs.
-
 ## Quick Start with Grok Build
 
 ```bash
@@ -105,54 +103,15 @@ See:
 - `.grok/skills/handoff/SKILL.md` and `synapsis/SKILL.md`
 - `uv run python -m tools.synapsis --help` (CLI for maintenance/hygiene)
 
-## The LLM client
+## The LLM client (historical note)
 
-```python
-from tools.llm.config import get_api_key
-from tools.llm.providers.grok import GrokProvider
+The multi-provider LLM client (`tools/llm` with Grok/Gemini/OpenRouter providers, batch, image support, etc.) was previously co-located in this repository during the initial extraction.
 
-provider = GrokProvider(get_api_key("grok"))
-resp = provider.chat("Summarize the Synapsis handoff protocol", model="grok-4-1-fast-non-reasoning")
-print(resp.text)
+It has been moved out of the lean synapsis *plugin* distribution (see user request: LLM tools "non sono di casa" here). The full code now lives under:
 
-# Or multi-agent Grok
-resp = provider.chat("Deep research on memory patterns", model="grok-4.20-multi-agent-0309", agent_count=8)
-```
+  ~/TeamOlimpo/synapsis-extras/tools/llm/
 
-It also supports Gemini, OpenRouter, image generation on supported models, and stateful chat sessions via the Responses API.
-
-### CLI usage (python -m tools.llm or `llm` if entrypoint installed)
-
-**No more hardcoded prompt directories** (previously `lib/Prompts` or `Team/Prompts`).
-
-- Prompts must be specified **explicitly** for versatility.
-- Batch supports **collections of files** via repeatable `--input` (or globs that expand to many files).
-
-Examples:
-
-```bash
-# Simple
-llm "your prompt here" --provider grok
-
-# Batch with explicit prompt from Library/prompts (real operational templates live here)
-llm --prompt Library/prompts/general/sintesi.md --input "docs/*.md" --output out/
-
-# Collection of inputs (repeated --input or glob)
-llm --prompt Library/prompts/kba/analisi-rischio-kba.md \
-    --input "kba-batch/*.md" --input "extra-notes.md" \
-    --output kba-results/ --provider grok
-
-# Merge mode: one LLM call over the entire collection (files concatenated)
-llm --prompt Library/prompts/kba/report-meeting.md \
-    --input "deliverables/kba-*.md" --merge --output out/
-
-# Interactive + explicit prompts dir for template discovery
-llm --prompts-dir Library/prompts -i
-```
-
-See `llm --help` and the rich docstring in `tools/llm/cli.py` for the full set of options (`--var`, `--dry-run`, `--merge`, images, etc.).
-
-Use the CLI or import the providers whenever you want to call a non-default model from inside tools, skills, or additional MCPs. The design emphasizes **explicit paths** so the tool is not tied to any particular folder layout.
+If you need the LLM client for your TeamOlimpo work, import from the extras tree (or extract it later into its own small package). The synapsis plugin itself is now focused exclusively on the durable memory MCP, tasks/handoffs, knowledge chunking/indexing, and the `/synapsis` + `/handoff` skills.
 
 ## Project layout (kept close to original for "as-is" fidelity)
 
@@ -164,9 +123,9 @@ synapsis/
 │   └── synapsis.db          # The hot operational SQLite store (sessions, tasks, observations, FTS5, ...)
 ├── tools/
 │   ├── common/
-│   │   └── paths.py         # project_root + symlink-aware resolution (Library + .synapsis)
-│   ├── synapsis/            # The memory MCP (server, store, hf handoffs, search, etc.)
-│   └── llm/                 # Multi-provider LLM client
+│   │   └── paths.py         # workspace + plugin-aware resolution (GROK_WORKSPACE_ROOT, Library, .synapsis)
+│   ├── synapsis/            # The memory MCP (server, store, hf handoffs, search, consolidate, etc.)
+│   └── knowledge_base/      # Chunking, entity extraction, hybrid search (used internally by synapsis for knowledge domain)
 ├── Library/                 # Gitignored — curated/static/vault content (Handoff + Wiki)
 │   ├── Handoff/
 │   └── Wiki/
@@ -198,12 +157,16 @@ Override the DB location anytime with the `SYNAPSIS_DB_PATH` environment variabl
 
 ## Status & Relationship to original project
 
-This is a focused extraction of the two strongest reusable components:
+This repo is now the focused, lean distribution of the **synapsis memory plugin** for Grok Build:
 
-- Synapsis (the memory/handoff/knowledge system)
-- The LLM multi-provider client
+- Synapsis (the memory/handoff/knowledge system + chunk indexer libraries)
+- Supporting CLI, skills (`/synapsis`, `/handoff`), hooks for auto-init + hygiene, and the full documented discipline (AGENTS.md + GROK.md).
 
-Many of the concepts (mandatory handoffs, structured memory, quality gates) translate well to agentic setups and subagent coordination patterns.
+The multi-provider LLM client was part of the initial extraction but has been moved to `~/TeamOlimpo/synapsis-extras/tools/llm/` (per decision that LLM tooling does not belong in the memory plugin surface). 
+
+Many of the concepts (mandatory handoffs, structured memory, quality gates, "handoff before you return control") translate well to agentic setups and subagent coordination patterns. The git workflow companion discipline (01- rule) also lives in the extras for TeamOlimpo adopters.
+
+## Contributing / Philosophy
 
 ## Contributing / Philosophy
 
